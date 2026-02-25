@@ -45,3 +45,10 @@ export function getOrderDetailApi(orderId) {
     method: 'get',
   });
 }
+
+export function getMyOrderListApi() {
+  return request({
+    url: '/order/my',
+    method: 'get',
+  });
+}

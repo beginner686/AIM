@@ -21,18 +21,34 @@ export async function createDemandApi(data) {
   const payload = normalizePayload(data);
   try {
     return await request({
-      url: '/demand/create',
-      method: 'post',
-      data: payload,
-    });
-  } catch (error) {
-    if (error?.response?.status !== 404) {
-      throw error;
-    }
-    return request({
       url: '/demand',
       method: 'post',
       data: payload,
     });
+  } catch (error) {
+    const status = error?.response?.status;
+    if (status !== 404 && status !== 405) {
+      throw error;
+    }
+    return request({
+      url: '/demand/create',
+      method: 'post',
+      data: payload,
+    });
   }
+}
+
+export function getDemandListApi(params) {
+  return request({
+    url: '/demand',
+    method: 'get',
+    params,
+  });
+}
+
+export function getMyDemandListApi() {
+  return request({
+    url: '/demand/my',
+    method: 'get',
+  });
 }

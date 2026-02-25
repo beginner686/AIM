@@ -48,6 +48,15 @@ const routes = [
         },
       },
       {
+        path: '/orders',
+        name: 'OrderList',
+        component: () => import('@/views/OrderList.vue'),
+        meta: {
+          title: '我的订单',
+          requiresAuth: true,
+        },
+      },
+      {
         path: '/order/:id',
         name: 'OrderDetail',
         component: () => import('@/views/OrderDetail.vue'),

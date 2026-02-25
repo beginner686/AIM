@@ -6,3 +6,11 @@ export function getCurrentUserApi() {
     method: 'get',
   });
 }
+
+export function updateUserProfileApi(data) {
+  return request({
+    url: '/user/me',
+    method: 'put',
+    data,
+  });
+}

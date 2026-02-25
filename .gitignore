@@ -2,6 +2,8 @@ target/
 .idea/
 *.iml
 *.log
+ailink-web/node_modules/
+ailink-web/dist/
 
 # 项目文档（不上传到远程仓库）
 AI-Link-Real-Profit-Mode-CTO.md

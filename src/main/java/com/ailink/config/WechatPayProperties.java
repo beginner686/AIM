@@ -1,0 +1,20 @@
+package com.ailink.config;
+
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@Data
+@ConfigurationProperties(prefix = "wechat.pay")
+public class WechatPayProperties {
+
+    private boolean enabled = false;
+    private boolean mockAutoSuccess = false;
+    private String baseUrl = "https://api.mch.weixin.qq.com";
+    private String appId;
+    private String mchId;
+    private String merchantSerialNo;
+    private String privateKeyPath;
+    private String platformPublicKeyPath;
+    private String apiV3Key;
+    private String notifyUrl;
+}

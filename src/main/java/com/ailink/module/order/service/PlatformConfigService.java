@@ -8,6 +8,7 @@ public interface PlatformConfigService {
 
     String PLATFORM_FEE_RATE_KEY = "platform_fee_rate";
     String ESCROW_FEE_RATE_KEY = "escrow_fee_rate";
+    String SERVICE_FEE_RATE_KEY = "service_fee_rate";
 
     BigDecimal getDecimal(String key, BigDecimal defaultValue);
 

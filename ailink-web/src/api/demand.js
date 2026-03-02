@@ -24,10 +24,17 @@ export async function createDemandApi(data) {
       url: '/demand',
       method: 'post',
       data: payload,
+      ignoreErrorStatuses: [404, 405],
+      silentBusinessError: true,
     });
   } catch (error) {
     const status = error?.response?.status;
-    if (status !== 404 && status !== 405) {
+    const message = String(error?.response?.data?.message || error?.message || '').toLowerCase();
+    const canFallback = status === 404
+      || status === 405
+      || message.includes("request method 'post' is not supported")
+      || message.includes('method not allowed');
+    if (!canFallback) {
       throw error;
     }
     return request({
@@ -49,6 +56,13 @@ export function getDemandListApi(params) {
 export function getMyDemandListApi() {
   return request({
     url: '/demand/my',
+    method: 'get',
+  });
+}
+
+export function getDemandDetailApi(demandId) {
+  return request({
+    url: `/demand/${demandId}`,
     method: 'get',
   });
 }

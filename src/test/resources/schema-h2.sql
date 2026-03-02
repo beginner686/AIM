@@ -1,0 +1,138 @@
+DROP TABLE IF EXISTS runner_payment_profile;
+DROP TABLE IF EXISTS platform_payment;
+DROP TABLE IF EXISTS order_status_log;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS worker_profile;
+DROP TABLE IF EXISTS demand;
+DROP TABLE IF EXISTS platform_config;
+DROP TABLE IF EXISTS user_account;
+
+CREATE TABLE user_account (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  role VARCHAR(20) NOT NULL,
+  username VARCHAR(50) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  email VARCHAR(100) NOT NULL,
+  country VARCHAR(100),
+  city VARCHAR(100),
+  status TINYINT NOT NULL DEFAULT 1,
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE demand (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  target_country VARCHAR(100) NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  budget DECIMAL(12,2) NOT NULL,
+  deadline TIMESTAMP,
+  description VARCHAR(1000) NOT NULL,
+  ai_structured VARCHAR(1000),
+  status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE worker_profile (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  country VARCHAR(100) NOT NULL,
+  city VARCHAR(100) NOT NULL,
+  skill_tags VARCHAR(1000) NOT NULL,
+  price_min DECIMAL(12,2) DEFAULT 0.00,
+  price_max DECIMAL(12,2) DEFAULT 0.00,
+  experience VARCHAR(1000),
+  rating FLOAT NOT NULL DEFAULT 5.0,
+  verified TINYINT NOT NULL DEFAULT 0,
+  real_name VARCHAR(100) NOT NULL,
+  id_no_hash VARCHAR(128) NOT NULL,
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE orders (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_no VARCHAR(32) NOT NULL,
+  demand_id BIGINT NOT NULL,
+  employer_id BIGINT NOT NULL,
+  worker_profile_id BIGINT NOT NULL,
+  worker_user_id BIGINT NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  service_fee_status VARCHAR(20) NOT NULL DEFAULT 'REQUIRED',
+  service_fee_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  service_fee_paid_time TIMESTAMP,
+  pay_status VARCHAR(20) NOT NULL,
+  payment_channel VARCHAR(30) NOT NULL,
+  platform_fee_rate DECIMAL(6,4) NOT NULL,
+  platform_fee DECIMAL(12,2) NOT NULL,
+  escrow_fee_rate DECIMAL(6,4) NOT NULL,
+  escrow_fee DECIMAL(12,2) NOT NULL,
+  worker_income DECIMAL(12,2) NOT NULL,
+  risk_status VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
+  dispute_reason VARCHAR(500),
+  closed_reason VARCHAR(500),
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE(order_no)
+);
+
+CREATE TABLE order_status_log (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT NOT NULL,
+  from_status VARCHAR(20),
+  to_status VARCHAR(20) NOT NULL,
+  operator_id BIGINT NOT NULL,
+  remark VARCHAR(255),
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE platform_payment (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  payment_no VARCHAR(40) NOT NULL,
+  order_id BIGINT NOT NULL,
+  payer_id BIGINT NOT NULL,
+  payment_channel VARCHAR(20) NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  transaction_id VARCHAR(64),
+  transaction_no VARCHAR(64),
+  code_url VARCHAR(1024),
+  paid_time TIMESTAMP,
+  remark VARCHAR(255),
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE(payment_no),
+  UNIQUE(transaction_id)
+);
+
+CREATE TABLE platform_config (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  config_key VARCHAR(50) NOT NULL,
+  config_value VARCHAR(100) NOT NULL,
+  description VARCHAR(255),
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE runner_payment_profile (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  paypal_email VARCHAR(120),
+  wise_link VARCHAR(255),
+  payment_url VARCHAR(255),
+  currency VARCHAR(10) NOT NULL DEFAULT 'CNY',
+  verified TINYINT NOT NULL DEFAULT 0,
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0
+);

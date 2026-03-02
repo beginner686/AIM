@@ -43,3 +43,16 @@ knife4j:
 logging:
   level:
     com.ailink: info
+
+wechat:
+  pay:
+    enabled: false
+    mock-auto-success: true
+    base-url: https://api.mch.weixin.qq.com
+    app-id: ""
+    mch-id: ""
+    merchant-serial-no: ""
+    private-key-path: ""
+    platform-public-key-path: ""
+    api-v3-key: ""
+    notify-url: ""

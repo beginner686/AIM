@@ -29,22 +29,44 @@
             <el-form-item label="标题" prop="title">
               <el-input v-model="formData.title" maxlength="50" placeholder="例如：新加坡市场产品文案本地化" />
             </el-form-item>
+
             <el-form-item label="类目" prop="category">
-              <el-input v-model="formData.category" maxlength="50" placeholder="例如：翻译、远程助理、视频剪辑" />
+              <el-autocomplete
+                v-model="formData.category"
+                class="category-autocomplete"
+                popper-class="category-autocomplete-popper"
+                :fetch-suggestions="queryCategorySuggestions"
+                :trigger-on-focus="true"
+                :highlight-first-item="true"
+                maxlength="50"
+                clearable
+                placeholder="搜索或输入类目，例如：网站开发 / 翻译 / 视频剪辑"
+                @input="handleCategoryInput"
+                @select="handleCategorySelect"
+              >
+                <template #default="{ item }">
+                  <div class="category-suggestion" :class="{ 'is-fallback': item.isFallback }">
+                    <span v-if="item.isFallback">{{ item.label }}</span>
+                    <span v-else v-html="highlightKeyword(item.label, latestCategoryKeyword)"></span>
+                  </div>
+                </template>
+              </el-autocomplete>
             </el-form-item>
           </div>
 
-          <div class="preset-row">
-            <span class="preset-label">常用类目：</span>
-            <button
-              v-for="item in categoryPresets"
-              :key="item"
-              type="button"
-              class="preset-btn"
-              @click="formData.category = item"
+          <div class="preset-row hot-row">
+            <span class="preset-label">热门推荐：</span>
+            <el-tag
+              v-for="item in hotCategoryOptions"
+              :key="item.code"
+              class="hot-tag"
+              :class="{ 'is-active': isHotCategoryActive(item) }"
+              :type="isHotCategoryActive(item) ? 'success' : 'info'"
+              :effect="isHotCategoryActive(item) ? 'dark' : 'plain'"
+              @click="handleHotCategoryClick(item)"
             >
-              {{ item }}
-            </button>
+              {{ item.label }}
+            </el-tag>
           </div>
 
           <div class="two-col">
@@ -60,21 +82,36 @@
             </el-form-item>
 
             <el-form-item label="国家" prop="country">
-              <el-input v-model="formData.country" maxlength="50" placeholder="例如：Singapore / Japan / UAE" />
+              <el-select
+                v-model="formData.country"
+                class="country-select"
+                filterable
+                clearable
+                placeholder="请选择国家"
+                :loading="countryLoading"
+              >
+                <el-option-group
+                  v-for="group in groupedCountryOptions"
+                  :key="group.key"
+                  :label="group.label"
+                >
+                  <el-option
+                    v-for="item in group.options"
+                    :key="item.code"
+                    :value="item.code"
+                    :label="item.label"
+                  >
+                    <div class="country-option-item">
+                      <span class="country-option-label">{{ item.label }}</span>
+                      <span v-if="item.hot" class="country-option-hot">推荐</span>
+                    </div>
+                  </el-option>
+                </el-option-group>
+              </el-select>
+              <div v-if="!countryLoading && groupedCountryOptions.length === 0" class="country-empty-tip">
+                暂无可选国家，请联系管理员配置国家字典。
+              </div>
             </el-form-item>
-          </div>
-
-          <div class="preset-row">
-            <span class="preset-label">常用国家：</span>
-            <button
-              v-for="item in countryPresets"
-              :key="item"
-              type="button"
-              class="preset-btn"
-              @click="formData.country = item"
-            >
-              {{ item }}
-            </button>
           </div>
 
           <el-form-item label="描述" prop="description">
@@ -140,10 +177,12 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { createDemandApi } from '@/api/demand';
+import { getCountryDictApi } from '@/api/dict';
+import { CATEGORY_OPTIONS, CATEGORY_PRESETS } from '@/dicts';
 import { formatMoney } from '@/utils/format';
 
 const router = useRouter();
@@ -158,8 +197,90 @@ const formData = reactive({
   description: '',
 });
 
-const categoryPresets = ['翻译本地化', '远程助理', '视频剪辑', '海外投放', '客服支持'];
-const countryPresets = ['Singapore', 'Japan', 'UAE', 'Germany', 'Australia'];
+const categoryPresets = CATEGORY_PRESETS;
+const FALLBACK_OTHER_CODE = 'other';
+const FALLBACK_OTHER_LABEL = '定制需求';
+const FALLBACK_GUIDE_TEXT = '未找到？发布为【定制需求】';
+const latestCategoryKeyword = ref('');
+const selectedCategoryCode = ref('');
+
+const countryOptions = ref([]);
+const countryLoading = ref(false);
+
+const REGION_ORDER = ['ASIA', 'EUROPE', 'OTHER'];
+const REGION_LABEL_MAP = {
+  ASIA: 'Asia',
+  EUROPE: 'Europe',
+  OTHER: 'Other',
+};
+
+const categoryOptionList = computed(() => {
+  const fromOptions = Array.isArray(CATEGORY_OPTIONS) ? CATEGORY_OPTIONS : [];
+  if (fromOptions.length > 0) {
+    return fromOptions
+      .map((item) => ({
+        code: String(item?.code || item?.label || '').trim(),
+        label: String(item?.label || item?.code || '').trim(),
+        sort: Number(item?.sort || 0),
+        hot: Boolean(item?.hot),
+        isFallback: false,
+      }))
+      .filter((item) => item.code && item.label);
+  }
+
+  return (Array.isArray(categoryPresets) ? categoryPresets : [])
+    .map((label, index) => ({
+      code: String(label),
+      label: String(label),
+      sort: (index + 1) * 10,
+      hot: index < 6,
+      isFallback: false,
+    }))
+    .filter((item) => item.code && item.label);
+});
+
+const hotCategoryOptions = computed(() => {
+  const list = categoryOptionList.value;
+  const hotList = list.filter((item) => item.hot);
+  if (hotList.length > 0) {
+    return hotList
+      .slice()
+      .sort((a, b) => a.sort - b.sort)
+      .slice(0, 6);
+  }
+  return list
+    .slice()
+    .sort((a, b) => a.sort - b.sort)
+    .slice(0, 6);
+});
+
+const groupedCountryOptions = computed(() => {
+  const list = countryOptions.value;
+  const groups = [];
+
+  const hotOptions = list.filter((item) => item.hot);
+  if (hotOptions.length > 0) {
+    groups.push({
+      key: 'hot',
+      label: '热门国家',
+      options: hotOptions,
+    });
+  }
+
+  const remain = hotOptions.length > 0 ? list.filter((item) => !item.hot) : list;
+  REGION_ORDER.forEach((region) => {
+    const options = remain.filter((item) => item.region === region);
+    if (options.length > 0) {
+      groups.push({
+        key: `region_${region}`,
+        label: REGION_LABEL_MAP[region],
+        options,
+      });
+    }
+  });
+
+  return groups;
+});
 
 const rules = {
   title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
@@ -177,7 +298,7 @@ const rules = {
       trigger: 'change',
     },
   ],
-  country: [{ required: true, message: '请输入国家', trigger: 'blur' }],
+  country: [{ required: true, message: '请选择国家', trigger: 'change' }],
   description: [{ required: true, message: '请输入描述', trigger: 'blur' }],
 };
 
@@ -190,6 +311,150 @@ function round2(value) {
   return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 }
 
+function queryCategorySuggestions(queryString, cb) {
+  const keyword = String(queryString || '').trim();
+  latestCategoryKeyword.value = keyword;
+  const normalized = keyword.toLowerCase();
+
+  const filtered = categoryOptionList.value
+    .filter((item) => {
+      if (!normalized) return true;
+      return String(item.label).toLowerCase().includes(normalized);
+    })
+    .slice(0, 8);
+
+  if (filtered.length > 0) {
+    cb(filtered);
+    return;
+  }
+
+  cb([
+    {
+      code: FALLBACK_OTHER_CODE,
+      label: FALLBACK_GUIDE_TEXT,
+      value: FALLBACK_GUIDE_TEXT,
+      isFallback: true,
+    },
+  ]);
+}
+
+function handleCategorySelect(item) {
+  if (!item) return;
+  if (item.isFallback || item.code === FALLBACK_OTHER_CODE) {
+    selectedCategoryCode.value = FALLBACK_OTHER_CODE;
+    formData.category = FALLBACK_OTHER_LABEL;
+    return;
+  }
+  selectedCategoryCode.value = item.code || '';
+  formData.category = item.label || '';
+}
+
+function handleCategoryInput(value) {
+  const text = String(value || '').trim();
+  if (!text) {
+    selectedCategoryCode.value = '';
+    return;
+  }
+  if (text === FALLBACK_OTHER_LABEL) {
+    selectedCategoryCode.value = FALLBACK_OTHER_CODE;
+    return;
+  }
+  const matched = categoryOptionList.value.find((item) => item.label === text);
+  selectedCategoryCode.value = matched?.code || '';
+}
+
+function handleHotCategoryClick(item) {
+  selectedCategoryCode.value = item?.code || '';
+  formData.category = item?.label || '';
+}
+
+function isHotCategoryActive(item) {
+  return String(formData.category || '').trim() === String(item?.label || '').trim();
+}
+
+function highlightKeyword(text, keyword) {
+  const source = String(text || '');
+  const key = String(keyword || '').trim();
+  if (!key) {
+    return escapeHtml(source);
+  }
+  const escapedKeyword = escapeRegExp(key);
+  return escapeHtml(source).replace(
+    new RegExp(`(${escapedKeyword})`, 'ig'),
+    '<span class="match-highlight">$1</span>',
+  );
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function parseCountryExtra(extraJson) {
+  if (!extraJson) return {};
+  try {
+    const parsed = JSON.parse(extraJson);
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizeCountryOption(row, index) {
+  const code = String(row?.dict_code || row?.dictCode || '').trim().toUpperCase();
+  const label = String(row?.dict_label || row?.dictLabel || '').trim();
+  const sortNo = Number(row?.sort_no ?? row?.sortNo ?? (index + 1) * 10);
+  const extraJson = row?.extra_json || row?.extraJson || '';
+  const extra = parseCountryExtra(extraJson);
+  const regionRaw = String(extra?.region || '').trim().toUpperCase();
+  const region = regionRaw === 'ASIA' || regionRaw === 'EUROPE' ? regionRaw : 'OTHER';
+  return {
+    code,
+    label,
+    sortNo,
+    hot: Boolean(extra?.hot),
+    region,
+  };
+}
+
+async function loadCountryOptions() {
+  countryLoading.value = true;
+  try {
+    const data = await getCountryDictApi();
+    const list = Array.isArray(data) ? data : [];
+    const normalizedList = list
+      .map(normalizeCountryOption)
+      .filter((item) => /^[A-Z]{2}$/.test(item.code) && item.label);
+    const dedupByCode = new Map();
+    normalizedList.forEach((item) => {
+      if (!dedupByCode.has(item.code)) {
+        dedupByCode.set(item.code, item);
+      }
+    });
+    countryOptions.value = Array.from(dedupByCode.values()).sort((a, b) => {
+        if (a.hot !== b.hot) return a.hot ? -1 : 1;
+        if (a.sortNo !== b.sortNo) return a.sortNo - b.sortNo;
+        return a.code.localeCompare(b.code);
+      });
+  } catch {
+    countryOptions.value = [];
+    ElMessage.error('国家字典加载失败，请稍后重试');
+  } finally {
+    countryLoading.value = false;
+  }
+}
+
 async function handleSubmit() {
   if (!formRef.value || submitLoading.value) {
     return;
@@ -198,7 +463,15 @@ async function handleSubmit() {
   await formRef.value.validate();
   submitLoading.value = true;
   try {
-    const data = await createDemandApi(formData);
+    const payload = {
+      ...formData,
+      category: selectedCategoryCode.value === FALLBACK_OTHER_CODE
+        ? FALLBACK_OTHER_CODE
+        : String(formData.category || '').trim(),
+      // 国家提交 dict_code（如 SG/US）
+      country: String(formData.country || '').trim().toUpperCase(),
+    };
+    const data = await createDemandApi(payload);
     const demandId = data?.demandId || data?.id || data || '';
     ElMessage.success('需求发布成功');
     router.push({
@@ -212,7 +485,13 @@ async function handleSubmit() {
 
 function resetForm() {
   formRef.value?.resetFields();
+  selectedCategoryCode.value = '';
+  latestCategoryKeyword.value = '';
 }
+
+onMounted(() => {
+  loadCountryOptions();
+});
 </script>
 
 <style scoped>
@@ -307,6 +586,11 @@ function resetForm() {
   gap: 12px;
 }
 
+.category-autocomplete,
+.country-select {
+  width: 100%;
+}
+
 .preset-row {
   margin: 0 0 14px;
   display: flex;
@@ -320,19 +604,51 @@ function resetForm() {
   color: #6e8799;
 }
 
-.preset-btn {
-  border: 1px solid #d0dfec;
-  background: #f8fbff;
-  color: #214962;
-  border-radius: 999px;
-  font-size: 12px;
-  padding: 4px 10px;
-  cursor: pointer;
+.hot-row {
+  margin-top: -2px;
 }
 
-.preset-btn:hover {
-  border-color: #9fc4df;
-  background: #edf5fc;
+.hot-tag {
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  border-width: 1px;
+}
+
+.hot-tag:hover {
+  transform: translateY(-1px);
+}
+
+:deep(.hot-tag.is-active) {
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.26);
+}
+
+.country-empty-tip {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #8a9bae;
+}
+
+.country-option-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.country-option-label {
+  color: #2a4154;
+}
+
+.country-option-hot {
+  border: 1px solid #9ec5ac;
+  color: #116149;
+  background: #edf8f2;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 8px;
+  flex-shrink: 0;
 }
 
 .action-row {
@@ -395,5 +711,21 @@ function resetForm() {
   .hero-strip h1 {
     font-size: 22px;
   }
+}
+
+:global(.category-autocomplete-popper .category-suggestion) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:global(.category-autocomplete-popper .category-suggestion.is-fallback) {
+  color: #0b5c8a;
+  font-weight: 600;
+}
+
+:global(.category-autocomplete-popper .match-highlight) {
+  color: #0f766e;
+  font-weight: 700;
 }
 </style>

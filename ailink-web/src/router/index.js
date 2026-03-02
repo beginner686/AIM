@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import pinia from '@/store';
 import { useUserStore } from '@/store/modules/user';
+import { USER_ROLE } from '@/dicts';
 
 const routes = [
   {
@@ -81,7 +82,7 @@ const routes = [
         meta: {
           title: '管理后台',
           requiresAuth: true,
-          roles: ['ADMIN'],
+          roles: [USER_ROLE.ADMIN],
         },
       },
     ],

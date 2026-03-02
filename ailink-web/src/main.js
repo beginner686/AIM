@@ -4,16 +4,23 @@ import 'element-plus/dist/index.css';
 import App from './App.vue';
 import router from '@/router';
 import pinia from '@/store';
+import { initDictCenter } from '@/dicts';
 import { formatMoney } from '@/utils/format';
 import '@/styles/index.css';
 
-const app = createApp(App);
+async function bootstrap() {
+  await initDictCenter();
 
-app.use(pinia);
-app.use(router);
-app.use(ElementPlus);
+  const app = createApp(App);
 
-app.config.globalProperties.$formatMoney = formatMoney;
-app.provide('formatMoney', formatMoney);
+  app.use(pinia);
+  app.use(router);
+  app.use(ElementPlus);
 
-app.mount('#app');
+  app.config.globalProperties.$formatMoney = formatMoney;
+  app.provide('formatMoney', formatMoney);
+
+  app.mount('#app');
+}
+
+bootstrap();

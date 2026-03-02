@@ -38,27 +38,44 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response) => {
     const payload = response.data;
+    const requestUrl = String(response?.config?.url || '');
+    const isAuthLoginRequest = requestUrl.includes('/auth/login');
+    const silentBusinessError = Boolean(response?.config?.silentBusinessError);
     if (payload && typeof payload.code !== 'undefined') {
       if (payload.code === 0) {
         return payload.data;
       }
       if (payload.code === 40100) {
-        ElMessage.error('登录已失效，请重新登录');
-        jumpToLogin();
-      } else {
+        if (isAuthLoginRequest) {
+          if (!silentBusinessError) {
+            ElMessage.error(payload.message || '用户名或密码错误');
+          }
+        } else if (!silentBusinessError) {
+          ElMessage.error('登录已失效，请重新登录');
+          jumpToLogin();
+        }
+      } else if (!silentBusinessError) {
         ElMessage.error(payload.message || '请求失败');
       }
-      return Promise.reject(new Error(payload.message || 'Request failed'));
+      const bizError = new Error(payload.message || 'Request failed');
+      bizError.bizCode = payload.code;
+      bizError.bizPayload = payload;
+      return Promise.reject(bizError);
     }
     return payload;
   },
   (error) => {
     const status = error?.response?.status;
     const apiMessage = error?.response?.data?.message;
-    if (status === 401) {
+    const requestUrl = String(error?.config?.url || '');
+    const isAuthLoginRequest = requestUrl.includes('/auth/login');
+    const ignoredStatuses = error?.config?.ignoreErrorStatuses;
+    const isIgnoredStatus = Array.isArray(ignoredStatuses) && ignoredStatuses.includes(status);
+    const silentHttpError = Boolean(error?.config?.silentHttpError);
+    if (status === 401 && !isAuthLoginRequest && !silentHttpError) {
       ElMessage.error('登录已失效，请重新登录');
       jumpToLogin();
-    } else {
+    } else if (!isIgnoredStatus && !silentHttpError) {
       ElMessage.error(apiMessage || error.message || '网络异常');
     }
     return Promise.reject(error);

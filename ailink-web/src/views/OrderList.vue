@@ -4,7 +4,7 @@
       <div class="hero-copy">
         <p class="hero-kicker">Order Center</p>
         <h1>我的订单</h1>
-        <p>查看每一笔订单的金额拆分、托管状态和履约进度，点击可进入详情页。</p>
+        <p>查看每一笔订单的金额拆分、服务费状态和履约进度，点击可进入详情页。</p>
       </div>
       <div class="hero-actions">
         <el-button @click="router.push('/worker-pool')">去创建订单</el-button>
@@ -42,19 +42,19 @@
         <el-select v-model="filterStatus" clearable placeholder="订单状态" style="width: 160px;">
           <el-option label="全部状态" value="" />
           <el-option
-            v-for="(label, key) in orderStatusMap"
-            :key="key"
-            :label="label"
-            :value="key"
+            v-for="item in orderStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
           />
         </el-select>
         <el-select v-model="filterPayStatus" clearable placeholder="支付状态" style="width: 160px;">
           <el-option label="全部支付状态" value="" />
           <el-option
-            v-for="(label, key) in payStatusMap"
-            :key="key"
-            :label="label"
-            :value="key"
+            v-for="item in payStatusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
           />
         </el-select>
         <el-button @click="clearFilters">重置筛选</el-button>
@@ -110,7 +110,7 @@
           </div>
 
           <div class="card-foot">
-            <span>托管状态：{{ escrowText(order) }}</span>
+            <span>服务费状态：{{ serviceFeeText(order) }}</span>
             <span>{{ formatDate(order.createdTime) }}</span>
           </div>
         </article>
@@ -124,6 +124,19 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Refresh } from '@element-plus/icons-vue';
 import { getMyOrderListApi } from '@/api/order';
+import {
+  ORDER_ACTIVE_STATUSES,
+  ORDER_CLOSED_STATUSES,
+  ORDER_COMPLETED_STATUSES,
+  ORDER_STATUS_DICT,
+  PAY_STATUS,
+  PAY_STATUS_DICT,
+  getOrderStatusLabel,
+  getOrderStatusTag,
+  getPayStatusLabel,
+  getPayStatusTag,
+  toSelectOptions,
+} from '@/dicts';
 import { formatMoney } from '@/utils/format';
 
 const router = useRouter();
@@ -133,24 +146,8 @@ const filterStatus = ref('');
 const filterPayStatus = ref('');
 const keyword = ref('');
 
-const orderStatusMap = {
-  CREATED: '已创建',
-  ESCROWED: '托管中',
-  IN_PROGRESS: '执行中',
-  COMPLETED: '已完成',
-  SETTLED: '已结算',
-  DISPUTE: '争议中',
-  DISPUTED: '争议中',
-  FORCE_CLOSED: '强制关闭',
-  CLOSED: '已关闭',
-};
-
-const payStatusMap = {
-  UNPAID: '待支付',
-  PAID: '已支付',
-  RELEASED: '已释放',
-  REFUNDED: '已退款',
-};
+const orderStatusOptions = computed(() => toSelectOptions(ORDER_STATUS_DICT));
+const payStatusOptions = computed(() => toSelectOptions(PAY_STATUS_DICT));
 
 const filteredOrders = computed(() => {
   const key = keyword.value.toLowerCase();
@@ -179,11 +176,11 @@ const filteredOrders = computed(() => {
 });
 
 const activeCount = computed(
-  () => orders.value.filter((order) => ['CREATED', 'ESCROWED', 'IN_PROGRESS', 'DISPUTE', 'DISPUTED'].includes(order?.status)).length,
+  () => orders.value.filter((order) => ORDER_ACTIVE_STATUSES.includes(order?.status)).length,
 );
 
 const completedCount = computed(
-  () => orders.value.filter((order) => ['COMPLETED', 'SETTLED'].includes(order?.status)).length,
+  () => orders.value.filter((order) => ORDER_COMPLETED_STATUSES.includes(order?.status)).length,
 );
 
 const totalAmount = computed(
@@ -196,35 +193,29 @@ const completionRate = computed(() => {
 });
 
 function orderStatusText(status) {
-  return orderStatusMap[status] || status || '未知';
+  return getOrderStatusLabel(status);
 }
 
 function orderStatusType(status) {
-  if (['COMPLETED', 'SETTLED'].includes(status)) return 'success';
-  if (['ESCROWED', 'IN_PROGRESS'].includes(status)) return 'warning';
-  if (['DISPUTE', 'DISPUTED', 'FORCE_CLOSED'].includes(status)) return 'danger';
-  return 'info';
+  return getOrderStatusTag(status);
 }
 
 function payStatusText(status) {
-  return payStatusMap[status] || status || '—';
+  return getPayStatusLabel(status);
 }
 
 function payStatusType(status) {
-  if (status === 'RELEASED') return 'success';
-  if (status === 'PAID') return 'warning';
-  if (status === 'REFUNDED') return 'danger';
-  return 'info';
+  return getPayStatusTag(status);
 }
 
-function escrowText(order) {
+function serviceFeeText(order) {
   const status = order?.status;
-  const payStatus = order?.payStatus;
-  if (payStatus === 'REFUNDED') return '已退款';
-  if (payStatus === 'RELEASED' || ['COMPLETED', 'SETTLED'].includes(status)) return '已释放给执行者';
-  if (payStatus === 'PAID' && ['ESCROWED', 'IN_PROGRESS', 'DISPUTE', 'DISPUTED'].includes(status)) return '托管冻结中';
-  if (['FORCE_CLOSED', 'CLOSED'].includes(status)) return '已关闭';
-  return '未托管';
+  const feeStatus = order?.serviceFeeStatus;
+  if (ORDER_CLOSED_STATUSES.includes(status)) return '订单已关闭';
+  if (ORDER_COMPLETED_STATUSES.includes(status)) return '服务费已支付';
+  if (feeStatus === PAY_STATUS.PAID || feeStatus === 'PAID') return '服务费已支付';
+  if (ORDER_ACTIVE_STATUSES.includes(status)) return '待支付服务费';
+  return '未开始';
 }
 
 function formatDate(value) {

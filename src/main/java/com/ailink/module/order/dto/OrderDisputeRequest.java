@@ -8,4 +8,6 @@ public class OrderDisputeRequest {
 
     @NotBlank(message = "reason is required")
     private String reason;
+
+    private String evidenceUrl;
 }

@@ -9,14 +9,19 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(BizException.class)
     public Result<Void> handleBizException(BizException exception) {
+        log.warn("business exception: code={}, message={}", exception.getCode(), exception.getMessage());
         return Result.fail(exception.getCode(), exception.getMessage());
     }
 
@@ -47,6 +52,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception exception) {
+        log.error("system exception", exception);
         return Result.fail(ErrorCode.SYSTEM_ERROR.getCode(), exception.getMessage());
     }
 }

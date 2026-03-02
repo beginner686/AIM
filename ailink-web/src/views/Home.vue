@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="home-page">
     <section class="hero">
       <div class="hero-copy">
@@ -52,7 +52,13 @@
         <el-empty v-else-if="latestDemands.length === 0" description="暂无需求记录" :image-size="72" />
 
         <ul v-else class="demand-list">
-          <li v-for="item in latestDemands" :key="item.id" class="demand-item">
+          <li
+            v-for="item in latestDemands"
+            :key="item.id"
+            class="demand-item"
+            :class="{ 'is-clickable': canMatchDemand(item) }"
+            @click="handleDemandMatch(item)"
+          >
             <div class="item-head">
               <span class="title">{{ item.category || '未分类' }}</span>
               <el-tag size="small" :type="demandStatusType(item.status)">{{ demandStatusText(item.status) }}</el-tag>
@@ -103,12 +109,24 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Plus, Search, Document, ShoppingCart, DataLine, Finished } from '@element-plus/icons-vue';
+import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/modules/user';
 import { getDemandListApi, getMyDemandListApi } from '@/api/demand';
 import { getMyOrderListApi } from '@/api/order';
+import {
+  DEMAND_OPEN_STATUSES,
+  ORDER_ACTIVE_STATUSES,
+  ORDER_FINISHED_STATUSES,
+  getDemandStatusLabel,
+  getDemandStatusTag,
+  getOrderStatusLabel,
+  getOrderStatusTag,
+  getPayStatusLabel,
+} from '@/dicts';
 import { formatMoney } from '@/utils/format';
 
 const userStore = useUserStore();
+const router = useRouter();
 const loading = ref(true);
 const demands = ref([]);
 const myDemands = ref([]);
@@ -135,13 +153,13 @@ const platformRevenue = computed(() =>
 );
 
 const activeOrderCount = computed(
-  () => myOrders.value.filter((o) => ['CREATED', 'ESCROWED', 'IN_PROGRESS', 'DISPUTED'].includes(o?.status)).length,
+  () => myOrders.value.filter((o) => ORDER_ACTIVE_STATUSES.includes(o?.status)).length,
 );
 
 const completionRate = computed(() => {
   const total = myOrders.value.length;
   if (!total) return '0.00';
-  const done = myOrders.value.filter((o) => ['COMPLETED', 'CLOSED'].includes(o?.status)).length;
+  const done = myOrders.value.filter((o) => ORDER_FINISHED_STATUSES.includes(o?.status)).length;
   return ((done / total) * 100).toFixed(2);
 });
 
@@ -205,51 +223,41 @@ function formatDate(dt) {
   return `${y}-${m}-${day}`;
 }
 
-const demandStatusMap = {
-  OPEN: '开放中',
-  MATCHED: '已匹配',
-  IN_PROGRESS: '进行中',
-  DONE: '已完成',
-  CLOSED: '已关闭',
-};
 function demandStatusText(status) {
-  return demandStatusMap[status] || status || '未知';
+  return getDemandStatusLabel(status);
 }
 function demandStatusType(status) {
-  if (status === 'OPEN') return 'success';
-  if (status === 'MATCHED' || status === 'IN_PROGRESS') return 'warning';
-  if (status === 'DONE') return 'primary';
-  if (status === 'CLOSED') return 'info';
-  return '';
+  return getDemandStatusTag(status);
 }
 
-const orderStatusMap = {
-  CREATED: '已创建',
-  ESCROWED: '托管中',
-  IN_PROGRESS: '执行中',
-  COMPLETED: '已完成',
-  DISPUTED: '争议中',
-  CLOSED: '已关闭',
-};
 function orderStatusText(status) {
-  return orderStatusMap[status] || status || '未知';
+  return getOrderStatusLabel(status);
 }
 function orderStatusType(status) {
-  if (status === 'COMPLETED') return 'success';
-  if (status === 'ESCROWED' || status === 'IN_PROGRESS') return 'warning';
-  if (status === 'DISPUTED') return 'danger';
-  if (status === 'CLOSED') return 'info';
-  return '';
+  return getOrderStatusTag(status);
 }
 
-const payStatusMap = {
-  UNPAID: '待支付',
-  PAID: '已支付',
-  RELEASED: '已释放',
-  REFUNDED: '已退款',
-};
 function payStatusText(status) {
-  return payStatusMap[status] || status || '—';
+  return getPayStatusLabel(status);
+}
+
+function canMatchDemand(item) {
+  const status = String(item?.status || '').trim();
+  if (!status) return false;
+  if (DEMAND_OPEN_STATUSES.length > 0) {
+    return DEMAND_OPEN_STATUSES.includes(status);
+  }
+  return status === 'OPEN';
+}
+
+function handleDemandMatch(item) {
+  if (!canMatchDemand(item)) return;
+  const demandId = Number(item?.id || 0);
+  if (!demandId) return;
+  router.push({
+    path: '/worker-pool',
+    query: { demandId: String(demandId) },
+  });
 }
 
 onMounted(async () => {
@@ -472,6 +480,15 @@ onMounted(async () => {
   background: #fbfdff;
 }
 
+.demand-item.is-clickable {
+  cursor: pointer;
+}
+
+.demand-item.is-clickable:hover {
+  border-color: #9ac3df;
+  background: #f2f9ff;
+}
+
 .order-item {
   cursor: pointer;
 }
@@ -566,3 +583,4 @@ onMounted(async () => {
   }
 }
 </style>
+

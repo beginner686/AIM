@@ -2,6 +2,8 @@ package com.ailink.module.worker.service.impl;
 
 import com.ailink.common.ErrorCode;
 import com.ailink.common.exception.BizException;
+import com.ailink.module.dict.entity.DictItem;
+import com.ailink.module.dict.mapper.DictItemMapper;
 import com.ailink.module.worker.dto.WorkerProfileUpsertRequest;
 import com.ailink.module.worker.dto.WorkerQueryRequest;
 import com.ailink.module.worker.entity.WorkerProfile;
@@ -13,14 +15,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 @Service
 public class WorkerProfileServiceImpl implements WorkerProfileService {
 
     private final WorkerProfileMapper workerProfileMapper;
+    private final DictItemMapper dictItemMapper;
 
-    public WorkerProfileServiceImpl(WorkerProfileMapper workerProfileMapper) {
+    public WorkerProfileServiceImpl(WorkerProfileMapper workerProfileMapper, DictItemMapper dictItemMapper) {
         this.workerProfileMapper = workerProfileMapper;
+        this.dictItemMapper = dictItemMapper;
     }
 
     @Override
@@ -58,7 +64,7 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
         LambdaQueryWrapper<WorkerProfile> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByDesc(WorkerProfile::getCreatedTime);
         if (StringUtils.hasText(request.getCountry())) {
-            wrapper.eq(WorkerProfile::getCountry, request.getCountry());
+            applyCountryFilter(wrapper, request.getCountry());
         }
         if (StringUtils.hasText(request.getCity())) {
             wrapper.eq(WorkerProfile::getCity, request.getCity());
@@ -70,6 +76,34 @@ public class WorkerProfileServiceImpl implements WorkerProfileService {
             wrapper.eq(WorkerProfile::getVerified, request.getVerified());
         }
         return workerProfileMapper.selectList(wrapper).stream().map(this::toVO).toList();
+    }
+
+    private void applyCountryFilter(LambdaQueryWrapper<WorkerProfile> wrapper, String rawCountry) {
+        String country = rawCountry.trim();
+        String upperCountry = country.toUpperCase();
+
+        List<DictItem> matchedDictRows = dictItemMapper.selectList(new LambdaQueryWrapper<DictItem>()
+                .eq(DictItem::getDictType, "COUNTRY")
+                .eq(DictItem::getEnabled, 1)
+                .and(w -> w.eq(DictItem::getDictCode, upperCountry).or().eq(DictItem::getDictLabel, country)));
+
+        if (matchedDictRows.isEmpty()) {
+            wrapper.like(WorkerProfile::getCountry, country);
+            return;
+        }
+
+        Set<String> candidateValues = new HashSet<>();
+        candidateValues.add(country);
+        candidateValues.add(upperCountry);
+        for (DictItem row : matchedDictRows) {
+            if (StringUtils.hasText(row.getDictCode())) {
+                candidateValues.add(row.getDictCode().trim().toUpperCase());
+            }
+            if (StringUtils.hasText(row.getDictLabel())) {
+                candidateValues.add(row.getDictLabel().trim());
+            }
+        }
+        wrapper.in(WorkerProfile::getCountry, candidateValues);
     }
 
     @Override

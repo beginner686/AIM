@@ -1,4 +1,5 @@
 import request from '@/api/request';
+import { USER_ROLE } from '@/dicts';
 
 export function loginApi(data) {
   const username = (data?.username || '').trim();
@@ -26,7 +27,7 @@ export function registerApi(data) {
     data: {
       username,
       password: data?.password || '',
-      role: 'USER',
+      role: USER_ROLE.USER,
       email: `${emailLocal}@ailink.local`,
     },
   });

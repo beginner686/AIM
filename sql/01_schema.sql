@@ -63,12 +63,16 @@ CREATE TABLE IF NOT EXISTS worker_profile (
 
 CREATE TABLE IF NOT EXISTS orders (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_no VARCHAR(32) NOT NULL,
   demand_id BIGINT NOT NULL,
   employer_id BIGINT NOT NULL,
   worker_profile_id BIGINT NOT NULL,
   worker_user_id BIGINT NOT NULL,
   amount DECIMAL(12,2) NOT NULL,
   status VARCHAR(20) NOT NULL,
+  service_fee_status VARCHAR(20) NOT NULL DEFAULT 'REQUIRED',
+  service_fee_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  service_fee_paid_time DATETIME,
   pay_status VARCHAR(20) NOT NULL,
   payment_channel VARCHAR(30) NOT NULL,
   platform_fee_rate DECIMAL(6,4) NOT NULL,
@@ -86,7 +90,12 @@ CREATE TABLE IF NOT EXISTS orders (
   KEY idx_order_employer (employer_id),
   KEY idx_order_worker_user (worker_user_id),
   KEY idx_order_status (status),
-  KEY idx_order_created_time (created_time)
+  KEY idx_order_created_time (created_time),
+  UNIQUE KEY uk_order_no (order_no),
+  CONSTRAINT fk_order_demand FOREIGN KEY (demand_id) REFERENCES demand(id),
+  CONSTRAINT fk_order_worker_profile FOREIGN KEY (worker_profile_id) REFERENCES worker_profile(id),
+  CONSTRAINT fk_order_employer FOREIGN KEY (employer_id) REFERENCES user_account(id),
+  CONSTRAINT fk_order_worker_user FOREIGN KEY (worker_user_id) REFERENCES user_account(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS order_status_log (
@@ -127,4 +136,113 @@ CREATE TABLE IF NOT EXISTS platform_config (
   updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted TINYINT NOT NULL DEFAULT 0,
   UNIQUE KEY uk_platform_config_key (config_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS dict_item (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  dict_type VARCHAR(50) NOT NULL,
+  dict_code VARCHAR(80) NOT NULL,
+  dict_label VARCHAR(120) NOT NULL,
+  tag_type VARCHAR(20) DEFAULT NULL,
+  group_key VARCHAR(50) DEFAULT NULL,
+  sort_no INT NOT NULL DEFAULT 0,
+  enabled TINYINT NOT NULL DEFAULT 1,
+  extra_json VARCHAR(1000) DEFAULT NULL,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_dict_type_code (dict_type, dict_code),
+  KEY idx_dict_type_enabled_sort (dict_type, enabled, sort_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS runner_payment_profile (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  paypal_email VARCHAR(120),
+  wise_link VARCHAR(255),
+  payment_url VARCHAR(255),
+  currency VARCHAR(10) NOT NULL DEFAULT 'CNY',
+  verified TINYINT NOT NULL DEFAULT 0,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_runner_pay_user (user_id),
+  KEY idx_runner_pay_verified (verified),
+  CONSTRAINT fk_runner_pay_user FOREIGN KEY (user_id) REFERENCES user_account(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS platform_payment (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  payment_no VARCHAR(40) NOT NULL,
+  order_id BIGINT NOT NULL,
+  payer_id BIGINT NOT NULL,
+  payment_channel VARCHAR(20) NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  transaction_id VARCHAR(64),
+  transaction_no VARCHAR(64),
+  code_url VARCHAR(1024),
+  paid_time DATETIME,
+  remark VARCHAR(255),
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_platform_payment_no (payment_no),
+  UNIQUE KEY uk_platform_payment_tx_id (transaction_id),
+  KEY idx_platform_payment_order (order_id),
+  KEY idx_platform_payment_status (status),
+  CONSTRAINT fk_platform_payment_order FOREIGN KEY (order_id) REFERENCES orders(id),
+  CONSTRAINT fk_platform_payment_user FOREIGN KEY (payer_id) REFERENCES user_account(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS dispute_ticket (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT NOT NULL,
+  creator_id BIGINT NOT NULL,
+  reason VARCHAR(500) NOT NULL,
+  evidence_url VARCHAR(500),
+  status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
+  resolver_id BIGINT,
+  resolution VARCHAR(500),
+  resolved_time DATETIME,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  KEY idx_dispute_order (order_id),
+  KEY idx_dispute_status (status),
+  CONSTRAINT fk_dispute_order FOREIGN KEY (order_id) REFERENCES orders(id),
+  CONSTRAINT fk_dispute_creator FOREIGN KEY (creator_id) REFERENCES user_account(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS chat_message (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT NOT NULL,
+  sender_id BIGINT NOT NULL,
+  content VARCHAR(2000) NOT NULL,
+  warning TINYINT NOT NULL DEFAULT 0,
+  warning_message VARCHAR(255),
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  KEY idx_chat_order_time (order_id, created_time),
+  KEY idx_chat_sender (sender_id),
+  CONSTRAINT fk_chat_order FOREIGN KEY (order_id) REFERENCES orders(id),
+  CONSTRAINT fk_chat_sender FOREIGN KEY (sender_id) REFERENCES user_account(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS order_review (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_id BIGINT NOT NULL,
+  reviewer_id BIGINT NOT NULL,
+  reviewee_id BIGINT NOT NULL,
+  score INT NOT NULL,
+  content VARCHAR(1000),
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_order_reviewer (order_id, reviewer_id),
+  KEY idx_review_reviewee (reviewee_id),
+  CONSTRAINT fk_review_order FOREIGN KEY (order_id) REFERENCES orders(id),
+  CONSTRAINT fk_review_reviewer FOREIGN KEY (reviewer_id) REFERENCES user_account(id),
+  CONSTRAINT fk_review_reviewee FOREIGN KEY (reviewee_id) REFERENCES user_account(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

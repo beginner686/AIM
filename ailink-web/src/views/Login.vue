@@ -100,9 +100,9 @@ async function handleLogin() {
   if (!loginFormRef.value || loginLoading.value) {
     return;
   }
-  await loginFormRef.value.validate();
-  loginLoading.value = true;
   try {
+    await loginFormRef.value.validate();
+    loginLoading.value = true;
     const data = await loginApi(loginForm);
     userStore.setLogin({
       token: data?.token || '',
@@ -111,6 +111,8 @@ async function handleLogin() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/home';
     router.replace(redirect);
     ElMessage.success('登录成功');
+  } catch (_error) {
+    // 请求层与表单层已处理提示，这里只兜底避免 Uncaught (in promise)。
   } finally {
     loginLoading.value = false;
   }
@@ -120,9 +122,9 @@ async function handleRegister() {
   if (!registerFormRef.value || registerLoading.value) {
     return;
   }
-  await registerFormRef.value.validate();
-  registerLoading.value = true;
   try {
+    await registerFormRef.value.validate();
+    registerLoading.value = true;
     await registerApi(registerForm);
     ElMessage.success('注册成功，请登录');
     activeTab.value = 'login';
@@ -130,6 +132,8 @@ async function handleRegister() {
     loginForm.password = '';
     registerForm.password = '';
     registerForm.confirmPassword = '';
+  } catch (_error) {
+    // 请求层与表单层已处理提示，这里只兜底避免 Uncaught (in promise)。
   } finally {
     registerLoading.value = false;
   }

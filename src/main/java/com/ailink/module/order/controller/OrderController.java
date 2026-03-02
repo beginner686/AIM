@@ -1,12 +1,17 @@
 package com.ailink.module.order.controller;
 
 import com.ailink.common.Result;
+import com.ailink.common.ErrorCode;
+import com.ailink.common.exception.BizException;
 import com.ailink.module.order.dto.OrderActionRequest;
 import com.ailink.module.order.dto.OrderCreateRequest;
-import com.ailink.module.order.dto.OrderDisputeRequest;
+import com.ailink.module.order.dto.ServiceFeePayRequest;
 import com.ailink.module.order.service.OrderService;
-import com.ailink.module.order.vo.OrderVO;
+import com.ailink.module.order.service.ServiceFeeService;
+import com.ailink.module.order.vo.OrderDetailVO;
 import com.ailink.module.order.vo.OrderStatusLogVO;
+import com.ailink.module.order.vo.OrderVO;
+import com.ailink.module.order.vo.ServiceFeePayVO;
 import com.ailink.security.SecurityContextUtil;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,9 +29,11 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderService orderService;
+    private final ServiceFeeService serviceFeeService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, ServiceFeeService serviceFeeService) {
         this.orderService = orderService;
+        this.serviceFeeService = serviceFeeService;
     }
 
     @PostMapping
@@ -35,27 +42,30 @@ public class OrderController {
         return Result.success(Map.of("orderId", orderId));
     }
 
-    @PostMapping("/{orderId}/escrow")
-    public Result<Void> payEscrow(@PathVariable Long orderId, @RequestBody(required = false) OrderActionRequest request) {
-        orderService.payEscrow(SecurityContextUtil.currentUserId(), orderId, request == null ? null : request.getRemark());
-        return Result.success();
+    @PostMapping("/{orderId}/pay-service-fee")
+    public Result<ServiceFeePayVO> payServiceFee(@PathVariable Long orderId,
+                                                 @RequestBody(required = false) ServiceFeePayRequest request) {
+        ensureClientRole();
+        ServiceFeePayVO vo = serviceFeeService.payServiceFee(
+                SecurityContextUtil.currentUserId(),
+                SecurityContextUtil.currentRole(),
+                orderId,
+                request == null ? null : request.getPaymentChannel(),
+                request == null ? null : request.getRemark());
+        return Result.success(vo);
     }
 
     @PostMapping("/{orderId}/start")
     public Result<Void> startWork(@PathVariable Long orderId, @RequestBody(required = false) OrderActionRequest request) {
+        ensureRunnerRole();
         orderService.startWork(SecurityContextUtil.currentUserId(), orderId, request == null ? null : request.getRemark());
         return Result.success();
     }
 
     @PostMapping("/{orderId}/complete")
     public Result<Void> confirmComplete(@PathVariable Long orderId, @RequestBody(required = false) OrderActionRequest request) {
+        ensureClientRole();
         orderService.confirmComplete(SecurityContextUtil.currentUserId(), orderId, request == null ? null : request.getRemark());
-        return Result.success();
-    }
-
-    @PostMapping("/{orderId}/dispute")
-    public Result<Void> dispute(@PathVariable Long orderId, @Valid @RequestBody OrderDisputeRequest request) {
-        orderService.raiseDispute(SecurityContextUtil.currentUserId(), orderId, request.getReason());
         return Result.success();
     }
 
@@ -65,12 +75,33 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
-    public Result<OrderVO> detail(@PathVariable Long orderId) {
+    public Result<OrderVO> detailCompat(@PathVariable Long orderId) {
         return Result.success(orderService.getMyOrder(SecurityContextUtil.currentUserId(), orderId));
+    }
+
+    @GetMapping("/{orderId}/detail")
+    public Result<OrderDetailVO> detail(@PathVariable Long orderId) {
+        return Result.success(orderService.getMyOrderDetail(SecurityContextUtil.currentUserId(), orderId));
     }
 
     @GetMapping("/{orderId}/logs")
     public Result<List<OrderStatusLogVO>> logs(@PathVariable Long orderId) {
         return Result.success(orderService.listMyOrderLogs(SecurityContextUtil.currentUserId(), orderId));
+    }
+
+    private void ensureClientRole() {
+        String role = SecurityContextUtil.currentRole();
+        if (!"USER".equalsIgnoreCase(role)
+                && !"EMPLOYER".equalsIgnoreCase(role)
+                && !"CLIENT".equalsIgnoreCase(role)) {
+            throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only client role can perform this action");
+        }
+    }
+
+    private void ensureRunnerRole() {
+        String role = SecurityContextUtil.currentRole();
+        if (!"WORKER".equalsIgnoreCase(role) && !"RUNNER".equalsIgnoreCase(role)) {
+            throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only runner role can perform this action");
+        }
     }
 }

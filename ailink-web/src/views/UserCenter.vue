@@ -56,10 +56,10 @@
             <el-select v-model="statusFilter" clearable placeholder="状态筛选" style="width: 160px;">
               <el-option label="全部状态" value="" />
               <el-option
-                v-for="(label, key) in demandStatusMap"
-                :key="key"
-                :label="label"
-                :value="key"
+                v-for="item in demandStatusOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
               />
             </el-select>
             <el-button @click="loadDemands">刷新</el-button>
@@ -95,6 +95,37 @@
       </div>
     </el-card>
 
+    <el-card v-if="isWorker" shadow="never" class="ucx-demand-panel">
+      <template #header>
+        <div class="ucx-panel-header">
+          <div>
+            <h2>执行者收款方式</h2>
+            <p>仅保存收款外链信息，不接入支付 SDK，不记录资金流水。</p>
+          </div>
+        </div>
+      </template>
+
+      <el-form v-loading="runnerPaymentLoading" :model="runnerPaymentForm" label-width="110px" class="runner-payment-form">
+        <el-form-item label="PayPal Email">
+          <el-input v-model.trim="runnerPaymentForm.paypalEmail" placeholder="name@example.com" />
+        </el-form-item>
+        <el-form-item label="Wise Link">
+          <el-input v-model.trim="runnerPaymentForm.wiseLink" placeholder="https://wise.com/..." />
+        </el-form-item>
+        <el-form-item label="Payment URL">
+          <el-input v-model.trim="runnerPaymentForm.paymentUrl" placeholder="https://..." />
+        </el-form-item>
+        <el-form-item label="Currency">
+          <el-input v-model.trim="runnerPaymentForm.currency" placeholder="CNY / USD" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="runnerPaymentSaving" @click="saveRunnerPaymentProfile">保存收款方式</el-button>
+          <el-link v-if="runnerPaymentForm.wiseLink" :href="runnerPaymentForm.wiseLink" target="_blank" type="primary">打开 Wise 链接</el-link>
+          <el-link v-if="runnerPaymentForm.paymentUrl" :href="runnerPaymentForm.paymentUrl" target="_blank" type="primary">打开收款链接</el-link>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <el-dialog v-model="showEditDialog" title="编辑个人资料" width="460px" destroy-on-close>
       <el-form :model="editForm" label-width="80px" label-position="left">
         <el-form-item label="邮箱">
@@ -123,6 +154,17 @@ import { Edit } from '@element-plus/icons-vue';
 import { useUserStore } from '@/store/modules/user';
 import { getCurrentUserApi, updateUserProfileApi } from '@/api/user';
 import { getMyDemandListApi } from '@/api/demand';
+import { getMyRunnerPaymentProfileApi, upsertMyRunnerPaymentProfileApi } from '@/api/runner';
+import {
+  DEMAND_ACTIVE_STATUSES,
+  DEMAND_OPEN_STATUSES,
+  DEMAND_STATUS_DICT,
+  getDemandStatusLabel,
+  getDemandStatusTag,
+  getRoleLabel,
+  getRoleTag,
+  toSelectOptions,
+} from '@/dicts';
 import { formatMoney } from '@/utils/format';
 
 const router = useRouter();
@@ -140,33 +182,27 @@ const editForm = ref({
   country: '',
   city: '',
 });
+const runnerPaymentLoading = ref(false);
+const runnerPaymentSaving = ref(false);
+const runnerPaymentForm = ref({
+  paypalEmail: '',
+  wiseLink: '',
+  paymentUrl: '',
+  currency: 'CNY',
+});
 
-const roleMap = {
-  ADMIN: '管理员',
-  USER: '用户',
-  EMPLOYER: '雇主',
-  WORKER: '执行者',
-};
-
-const demandStatusMap = {
-  OPEN: '开放中',
-  MATCHED: '已匹配',
-  IN_PROGRESS: '进行中',
-  DONE: '已完成',
-  CLOSED: '已关闭',
-};
+const demandStatusOptions = computed(() => toSelectOptions(DEMAND_STATUS_DICT));
 
 const avatarLetter = computed(() => {
   const name = userInfo.value?.username || '';
   return name.charAt(0).toUpperCase() || 'U';
 });
 
-const roleText = computed(() => roleMap[userInfo.value?.role] || userInfo.value?.role || '用户');
+const roleText = computed(() => getRoleLabel(userInfo.value?.role));
+const isWorker = computed(() => String(userInfo.value?.role || '').toUpperCase() === 'WORKER');
 
 const roleTagType = computed(() => {
-  if (userInfo.value?.role === 'ADMIN') return 'danger';
-  if (userInfo.value?.role === 'WORKER') return 'success';
-  return 'info';
+  return getRoleTag(userInfo.value?.role);
 });
 
 const locationText = computed(() => {
@@ -183,10 +219,12 @@ const filteredDemands = computed(() => {
   return myDemands.value.filter((item) => item?.status === statusFilter.value);
 });
 
-const openCount = computed(() => myDemands.value.filter((item) => item?.status === 'OPEN').length);
+const openCount = computed(
+  () => myDemands.value.filter((item) => DEMAND_OPEN_STATUSES.includes(item?.status)).length,
+);
 
 const activeCount = computed(
-  () => myDemands.value.filter((item) => ['MATCHED', 'IN_PROGRESS'].includes(item?.status)).length,
+  () => myDemands.value.filter((item) => DEMAND_ACTIVE_STATUSES.includes(item?.status)).length,
 );
 
 const totalBudget = computed(
@@ -213,15 +251,11 @@ function formatDate(value) {
 }
 
 function demandStatusText(status) {
-  return demandStatusMap[status] || status || '未知';
+  return getDemandStatusLabel(status);
 }
 
 function demandStatusType(status) {
-  if (status === 'OPEN') return 'success';
-  if (status === 'MATCHED' || status === 'IN_PROGRESS') return 'warning';
-  if (status === 'DONE') return 'info';
-  if (status === 'CLOSED') return 'danger';
-  return '';
+  return getDemandStatusTag(status);
 }
 
 async function loadUserProfile() {
@@ -271,8 +305,50 @@ async function handleSave() {
   }
 }
 
+async function loadRunnerPaymentProfile() {
+  if (!isWorker.value) {
+    return;
+  }
+  runnerPaymentLoading.value = true;
+  try {
+    const data = await getMyRunnerPaymentProfileApi();
+    runnerPaymentForm.value = {
+      paypalEmail: data?.paypalEmail || '',
+      wiseLink: data?.wiseLink || '',
+      paymentUrl: data?.paymentUrl || '',
+      currency: data?.currency || 'CNY',
+    };
+  } catch {
+    runnerPaymentForm.value = {
+      paypalEmail: '',
+      wiseLink: '',
+      paymentUrl: '',
+      currency: 'CNY',
+    };
+  } finally {
+    runnerPaymentLoading.value = false;
+  }
+}
+
+async function saveRunnerPaymentProfile() {
+  if (!isWorker.value || runnerPaymentSaving.value) {
+    return;
+  }
+  runnerPaymentSaving.value = true;
+  try {
+    await upsertMyRunnerPaymentProfileApi(runnerPaymentForm.value);
+    ElMessage.success('收款方式已保存');
+    await loadRunnerPaymentProfile();
+  } catch {
+    ElMessage.error('收款方式保存失败');
+  } finally {
+    runnerPaymentSaving.value = false;
+  }
+}
+
 onMounted(async () => {
-  await Promise.allSettled([loadUserProfile(), loadDemands()]);
+  await loadUserProfile();
+  await Promise.allSettled([loadDemands(), loadRunnerPaymentProfile()]);
 });
 </script>
 
@@ -480,6 +556,10 @@ onMounted(async () => {
   gap: 12px;
   font-size: 12px;
   color: #94a3b8;
+}
+
+.runner-payment-form {
+  max-width: 720px;
 }
 
 @media (max-width: 1100px) {

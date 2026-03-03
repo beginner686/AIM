@@ -62,10 +62,31 @@ public class OrderController {
         return Result.success();
     }
 
+    @PostMapping("/{orderId}/accept")
+    public Result<Void> acceptWork(@PathVariable Long orderId, @RequestBody(required = false) OrderActionRequest request) {
+        ensureRunnerRole();
+        orderService.acceptWork(SecurityContextUtil.currentUserId(), orderId, request == null ? null : request.getRemark());
+        return Result.success();
+    }
+
+    @PostMapping("/{orderId}/reject")
+    public Result<Void> rejectWork(@PathVariable Long orderId, @RequestBody(required = false) OrderActionRequest request) {
+        ensureRunnerRole();
+        orderService.rejectWork(SecurityContextUtil.currentUserId(), orderId, request == null ? null : request.getRemark());
+        return Result.success();
+    }
+
     @PostMapping("/{orderId}/complete")
     public Result<Void> confirmComplete(@PathVariable Long orderId, @RequestBody(required = false) OrderActionRequest request) {
         ensureClientRole();
         orderService.confirmComplete(SecurityContextUtil.currentUserId(), orderId, request == null ? null : request.getRemark());
+        return Result.success();
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    public Result<Void> cancelOrder(@PathVariable Long orderId, @RequestBody(required = false) OrderActionRequest request) {
+        ensureClientRole();
+        orderService.cancelByEmployer(SecurityContextUtil.currentUserId(), orderId, request == null ? null : request.getRemark());
         return Result.success();
     }
 
@@ -93,7 +114,8 @@ public class OrderController {
         String role = SecurityContextUtil.currentRole();
         if (!"USER".equalsIgnoreCase(role)
                 && !"EMPLOYER".equalsIgnoreCase(role)
-                && !"CLIENT".equalsIgnoreCase(role)) {
+                && !"CLIENT".equalsIgnoreCase(role)
+                && !"WORKER".equalsIgnoreCase(role)) {
             throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only client role can perform this action");
         }
     }

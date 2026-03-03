@@ -43,7 +43,7 @@ class OrderServiceImplTest {
     void shouldTransitLegalPath() {
         Long orderId = insertOrderWithStatus(OrderStatus.CREATED.name(), "REQUIRED");
         orderService.updateOrderStatus(1L, orderId, OrderStatus.SERVICE_FEE_REQUIRED, "test");
-        orderService.updateOrderStatus(1L, orderId, OrderStatus.SERVICE_FEE_PAID, "test");
+        orderService.updateOrderStatus(1L, orderId, OrderStatus.WAIT_WORKER_ACCEPT, "test");
         orderService.updateOrderStatus(1L, orderId, OrderStatus.MATCH_UNLOCKED, "test");
         orderService.updateOrderStatus(2L, orderId, OrderStatus.IN_PROGRESS, "test");
         orderService.updateOrderStatus(1L, orderId, OrderStatus.COMPLETED, "test");
@@ -91,8 +91,15 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void shouldAutoUnlockBeforeStartWork() {
-        Long orderId = insertOrderWithStatus(OrderStatus.SERVICE_FEE_PAID.name(), "PAID");
+    void shouldRequireWorkerAcceptBeforeStartWork() {
+        Long orderId = insertOrderWithStatus(OrderStatus.WAIT_WORKER_ACCEPT.name(), "PAID");
+        assertThrows(BizException.class, () -> orderService.startWork(2L, orderId, "start"));
+    }
+
+    @Test
+    void shouldAllowWorkerAcceptThenStartWork() {
+        Long orderId = insertOrderWithStatus(OrderStatus.WAIT_WORKER_ACCEPT.name(), "PAID");
+        orderService.acceptWork(2L, orderId, "accept");
         orderService.startWork(2L, orderId, "start");
         Order order = orderMapper.selectById(orderId);
         assertEquals(OrderStatus.IN_PROGRESS.name(), order.getStatus());
@@ -109,8 +116,18 @@ class OrderServiceImplTest {
     }
 
     @Test
-    void shouldShowSensitiveFieldsWhenServiceFeePaid() {
-        Long orderId = insertOrderWithStatus(OrderStatus.SERVICE_FEE_PAID.name(), "PAID");
+    void shouldHideSensitiveFieldsBeforeWorkerAccept() {
+        Long orderId = insertOrderWithStatus(OrderStatus.WAIT_WORKER_ACCEPT.name(), "PAID");
+        OrderDetailVO detailVO = orderService.getMyOrderDetail(1L, orderId);
+        assertFalse(detailVO.getShowContact());
+        assertNull(detailVO.getShowChat());
+        assertNull(detailVO.getRunnerContact());
+        assertNull(detailVO.getRunnerPaymentProfile());
+    }
+
+    @Test
+    void shouldShowSensitiveFieldsAfterWorkerAccept() {
+        Long orderId = insertOrderWithStatus(OrderStatus.MATCH_UNLOCKED.name(), "PAID");
         RunnerPaymentProfile profile = new RunnerPaymentProfile();
         profile.setUserId(2L);
         profile.setPaypalEmail("runner@paypal.test");
@@ -139,7 +156,7 @@ class OrderServiceImplTest {
         order.setStatus(status);
         order.setServiceFeeStatus(serviceFeeStatus);
         order.setServiceFeeAmount(new BigDecimal("100.00"));
-        order.setPayStatus("UNPAID");
+        order.setPayStatus("PAID".equals(serviceFeeStatus) ? "PAID" : "UNPAID");
         order.setPaymentChannel("WECHAT_PAY");
         order.setPlatformFeeRate(new BigDecimal("0.06"));
         order.setPlatformFee(new BigDecimal("60.00"));

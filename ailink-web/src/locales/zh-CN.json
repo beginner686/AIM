@@ -1,0 +1,22 @@
+{
+    "nav": {
+        "home": "首页",
+        "demands": "需求大厅",
+        "workers": "人才库",
+        "categories": "服务目录"
+    },
+    "action": {
+        "workspace": "进入工作台",
+        "login": "登录",
+        "register": "免费开始",
+        "registerEmployer": "雇主注册",
+        "registerWorker": "服务方入驻",
+        "loginAccount": "登录账号"
+    },
+    "footer": {
+        "tagline": "连接全球优质技能，驱动跨境业务增长",
+        "platform": "平台",
+        "join": "入驻",
+        "copyright": "AI-Link · 全球跨境人力服务平台"
+    }
+}

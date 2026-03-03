@@ -13,12 +13,14 @@ CREATE TABLE IF NOT EXISTS user_account (
   country VARCHAR(100),
   city VARCHAR(100),
   status TINYINT NOT NULL DEFAULT 1,
+  worker_apply_status VARCHAR(20) NOT NULL DEFAULT 'NONE',
   created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted TINYINT NOT NULL DEFAULT 0,
   UNIQUE KEY uk_user_username (username),
   UNIQUE KEY uk_user_email (email),
-  KEY idx_user_role_status (role, status)
+  KEY idx_user_role_status (role, status),
+  KEY idx_user_worker_apply_status (worker_apply_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS demand (
@@ -61,6 +63,32 @@ CREATE TABLE IF NOT EXISTS worker_profile (
   KEY idx_worker_verified (verified)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS worker_apply (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  country VARCHAR(100) NOT NULL,
+  city VARCHAR(100) NOT NULL,
+  skill_tags TEXT NOT NULL,
+  price_min DECIMAL(12,2) DEFAULT 0.00,
+  price_max DECIMAL(12,2) DEFAULT 0.00,
+  experience TEXT,
+  real_name VARCHAR(100) NOT NULL,
+  id_no_hash VARCHAR(128) NOT NULL,
+  apply_note VARCHAR(500),
+  review_note VARCHAR(500),
+  reviewed_by BIGINT,
+  reviewed_time DATETIME,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  KEY idx_worker_apply_user (user_id),
+  KEY idx_worker_apply_status (status),
+  KEY idx_worker_apply_created (created_time),
+  CONSTRAINT fk_worker_apply_user FOREIGN KEY (user_id) REFERENCES user_account(id),
+  CONSTRAINT fk_worker_apply_reviewer FOREIGN KEY (reviewed_by) REFERENCES user_account(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS orders (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   order_no VARCHAR(32) NOT NULL,
@@ -96,6 +124,33 @@ CREATE TABLE IF NOT EXISTS orders (
   CONSTRAINT fk_order_worker_profile FOREIGN KEY (worker_profile_id) REFERENCES worker_profile(id),
   CONSTRAINT fk_order_employer FOREIGN KEY (employer_id) REFERENCES user_account(id),
   CONSTRAINT fk_order_worker_user FOREIGN KEY (worker_user_id) REFERENCES user_account(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS demand_apply (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  demand_id BIGINT NOT NULL,
+  demand_owner_id BIGINT NOT NULL,
+  worker_user_id BIGINT NOT NULL,
+  worker_profile_id BIGINT NOT NULL,
+  quote_amount DECIMAL(12,2) NOT NULL,
+  apply_note VARCHAR(1000),
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  review_note VARCHAR(500),
+  order_id BIGINT,
+  handled_time DATETIME,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  KEY idx_demand_apply_demand (demand_id),
+  KEY idx_demand_apply_owner (demand_owner_id),
+  KEY idx_demand_apply_worker_user (worker_user_id),
+  KEY idx_demand_apply_status (status),
+  UNIQUE KEY uk_demand_apply_demand_worker (demand_id, worker_user_id, deleted),
+  CONSTRAINT fk_demand_apply_demand FOREIGN KEY (demand_id) REFERENCES demand(id),
+  CONSTRAINT fk_demand_apply_owner FOREIGN KEY (demand_owner_id) REFERENCES user_account(id),
+  CONSTRAINT fk_demand_apply_worker_user FOREIGN KEY (worker_user_id) REFERENCES user_account(id),
+  CONSTRAINT fk_demand_apply_worker_profile FOREIGN KEY (worker_profile_id) REFERENCES worker_profile(id),
+  CONSTRAINT fk_demand_apply_order FOREIGN KEY (order_id) REFERENCES orders(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS order_status_log (

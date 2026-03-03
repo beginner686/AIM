@@ -132,7 +132,7 @@ class ServiceFeeServiceImplIdempotencyTest {
 
             Order order = orderMapper.selectById(orderId);
             assertEquals(ServiceFeeStatus.PAID.name(), order.getServiceFeeStatus());
-            assertEquals(OrderStatus.SERVICE_FEE_PAID.name(), order.getStatus());
+            assertEquals(OrderStatus.WAIT_WORKER_ACCEPT.name(), order.getStatus());
 
             PlatformPayment payment = platformPaymentMapper.selectOne(new LambdaQueryWrapper<PlatformPayment>()
                     .eq(PlatformPayment::getPaymentNo, payVO.getPaymentNo())
@@ -188,14 +188,14 @@ class ServiceFeeServiceImplIdempotencyTest {
 
         Order order = orderMapper.selectById(orderId);
         assertEquals(ServiceFeeStatus.PAID.name(), order.getServiceFeeStatus());
-        assertEquals(OrderStatus.SERVICE_FEE_PAID.name(), order.getStatus());
+        assertEquals(OrderStatus.WAIT_WORKER_ACCEPT.name(), order.getStatus());
 
         PlatformPayment after = platformPaymentMapper.selectById(payment.getId());
         assertEquals(PlatformPaymentStatus.SUCCESS.name(), after.getStatus());
 
         Long paidLogCount = orderStatusLogMapper.selectCount(new LambdaQueryWrapper<OrderStatusLog>()
                 .eq(OrderStatusLog::getOrderId, orderId)
-                .eq(OrderStatusLog::getToStatus, OrderStatus.SERVICE_FEE_PAID.name()));
+                .eq(OrderStatusLog::getToStatus, OrderStatus.WAIT_WORKER_ACCEPT.name()));
         assertEquals(1L, paidLogCount);
     }
 
@@ -273,7 +273,7 @@ class ServiceFeeServiceImplIdempotencyTest {
 
         Order order = orderMapper.selectById(orderId);
         assertEquals(ServiceFeeStatus.PAID.name(), order.getServiceFeeStatus());
-        assertEquals(OrderStatus.SERVICE_FEE_PAID.name(), order.getStatus());
+        assertEquals(OrderStatus.WAIT_WORKER_ACCEPT.name(), order.getStatus());
     }
 
     @Test

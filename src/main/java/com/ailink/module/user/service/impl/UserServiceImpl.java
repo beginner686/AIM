@@ -65,6 +65,7 @@ public class UserServiceImpl implements UserService {
         user.setCountry(request.getCountry());
         user.setCity(request.getCity());
         user.setStatus(1);
+        user.setWorkerApplyStatus("WORKER".equalsIgnoreCase(user.getRole()) ? "APPROVED" : "NONE");
         userMapper.insert(user);
         return user.getId();
     }
@@ -117,6 +118,7 @@ public class UserServiceImpl implements UserService {
         vo.setCountry(user.getCountry());
         vo.setCity(user.getCity());
         vo.setStatus(user.getStatus());
+        vo.setWorkerApplyStatus(user.getWorkerApplyStatus());
         vo.setCreatedTime(user.getCreatedTime());
         return vo;
     }

@@ -23,3 +23,27 @@ export function getFeeConfigApi() {
 export function updateFeeConfigApi(data) {
     return request({ url: '/admin/config/fees', method: 'post', data });
 }
+
+export function getWorkerApplyListApi(status = '') {
+    return request({
+        url: '/admin/worker/apply/list',
+        method: 'get',
+        params: { status },
+    });
+}
+
+export function approveWorkerApplyApi(applyId, reviewNote = '') {
+    return request({
+        url: `/admin/worker/apply/${applyId}/approve`,
+        method: 'post',
+        data: { reviewNote },
+    });
+}
+
+export function rejectWorkerApplyApi(applyId, reviewNote = '') {
+    return request({
+        url: `/admin/worker/apply/${applyId}/reject`,
+        method: 'post',
+        data: { reviewNote },
+    });
+}

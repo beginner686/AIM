@@ -158,8 +158,9 @@ public class ServiceFeeServiceImpl implements ServiceFeeService {
             order.setPayStatus("PAID");
             orderMapper.updateById(order);
 
-            if (!OrderStatus.SERVICE_FEE_PAID.name().equals(order.getStatus())) {
-                orderService.updateOrderStatus(order.getEmployerId(), order.getId(), OrderStatus.SERVICE_FEE_PAID, "service fee paid by wechat callback");
+            if (!OrderStatus.WAIT_WORKER_ACCEPT.name().equals(order.getStatus())) {
+                orderService.updateOrderStatus(order.getEmployerId(), order.getId(), OrderStatus.WAIT_WORKER_ACCEPT,
+                        "service fee paid, waiting worker accept");
             }
             log.info("wechat notify processed successfully, orderId={}, paymentNo={}, txId={}",
                     order.getId(), payment.getPaymentNo(), payment.getTransactionId());

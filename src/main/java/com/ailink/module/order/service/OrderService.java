@@ -14,7 +14,13 @@ public interface OrderService {
 
     void updateOrderStatus(Long operatorId, Long orderId, OrderStatus target, String remark);
 
+    void acceptWork(Long workerUserId, Long orderId, String remark);
+
+    void rejectWork(Long workerUserId, Long orderId, String remark);
+
     void startWork(Long workerUserId, Long orderId, String remark);
+
+    void cancelByEmployer(Long employerId, Long orderId, String remark);
 
     void confirmComplete(Long employerId, Long orderId, String remark);
 

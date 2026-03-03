@@ -7,6 +7,7 @@ public enum OrderStatus {
     CREATED,
     SERVICE_FEE_REQUIRED,
     SERVICE_FEE_PAID,
+    WAIT_WORKER_ACCEPT,
     MATCH_UNLOCKED,
     IN_PROGRESS,
     COMPLETED,
@@ -16,8 +17,9 @@ public enum OrderStatus {
 
     private static final Map<OrderStatus, Set<OrderStatus>> TRANSITIONS = Map.of(
             CREATED, Set.of(SERVICE_FEE_REQUIRED, CLOSED),
-            SERVICE_FEE_REQUIRED, Set.of(SERVICE_FEE_PAID, CLOSED),
-            SERVICE_FEE_PAID, Set.of(MATCH_UNLOCKED, CLOSED),
+            SERVICE_FEE_REQUIRED, Set.of(SERVICE_FEE_PAID, WAIT_WORKER_ACCEPT, CLOSED),
+            SERVICE_FEE_PAID, Set.of(WAIT_WORKER_ACCEPT, MATCH_UNLOCKED, CLOSED),
+            WAIT_WORKER_ACCEPT, Set.of(MATCH_UNLOCKED, CLOSED),
             MATCH_UNLOCKED, Set.of(IN_PROGRESS, DISPUTE, CLOSED),
             IN_PROGRESS, Set.of(COMPLETED, DISPUTE, CLOSED),
             DISPUTE, Set.of(ARBITRATION, CLOSED),

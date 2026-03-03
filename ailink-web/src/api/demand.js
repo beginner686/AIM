@@ -66,3 +66,10 @@ export function getDemandDetailApi(demandId) {
     method: 'get',
   });
 }
+
+export function cancelDemandApi(demandId) {
+  return request({
+    url: `/demand/${demandId}/cancel`,
+    method: 'post',
+  });
+}

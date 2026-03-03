@@ -4,6 +4,44 @@ import { useUserStore } from '@/store/modules/user';
 import { USER_ROLE } from '@/dicts';
 
 const routes = [
+  // -------------------------
+  // 公开前台页面
+  // -------------------------
+  {
+    path: '/',
+    component: () => import('@/layout/PublicLayout.vue'),
+    meta: { public: true },
+    children: [
+      {
+        path: '',
+        name: 'Landing',
+        component: () => import('@/views/public/Landing.vue'),
+        meta: { title: '全球跨境人力服务平台', public: true },
+      },
+      {
+        path: 'explore/demands',
+        name: 'PublicDemandHall',
+        component: () => import('@/views/public/DemandHall.vue'),
+        meta: { title: '需求大厅', public: true },
+      },
+      {
+        path: 'explore/workers',
+        name: 'PublicWorkerShowcase',
+        component: () => import('@/views/public/WorkerShowcase.vue'),
+        meta: { title: '发现执行者', public: true },
+      },
+      {
+        path: 'explore/categories',
+        name: 'PublicCategoryPage',
+        component: () => import('@/views/public/CategoryPage.vue'),
+        meta: { title: '服务分类', public: true },
+      },
+    ],
+  },
+
+  // -------------------------
+  // 登录/注册
+  // -------------------------
   {
     path: '/login',
     name: 'Login',
@@ -13,10 +51,13 @@ const routes = [
       public: true,
     },
   },
+
+  // -------------------------
+  // 登录后工作台（BasicLayout）
+  // -------------------------
   {
-    path: '/',
+    path: '/_app', // 占位路径，子路由使用绝对路径
     component: () => import('@/layout/BasicLayout.vue'),
-    redirect: '/home',
     meta: {
       requiresAuth: true,
     },
@@ -28,6 +69,7 @@ const routes = [
         meta: {
           title: '首页',
           requiresAuth: true,
+          disallowRoles: [USER_ROLE.ADMIN],
         },
       },
       {
@@ -37,6 +79,7 @@ const routes = [
         meta: {
           title: '发布需求',
           requiresAuth: true,
+          disallowRoles: [USER_ROLE.ADMIN],
         },
       },
       {
@@ -46,6 +89,7 @@ const routes = [
         meta: {
           title: '执行者资源池',
           requiresAuth: true,
+          disallowRoles: [USER_ROLE.ADMIN],
         },
       },
       {
@@ -55,6 +99,7 @@ const routes = [
         meta: {
           title: '我的订单',
           requiresAuth: true,
+          disallowRoles: [USER_ROLE.ADMIN],
         },
       },
       {
@@ -64,6 +109,7 @@ const routes = [
         meta: {
           title: '订单详情',
           requiresAuth: true,
+          disallowRoles: [USER_ROLE.ADMIN],
         },
       },
       {
@@ -73,6 +119,7 @@ const routes = [
         meta: {
           title: '用户中心',
           requiresAuth: true,
+          disallowRoles: [USER_ROLE.ADMIN],
         },
       },
       {
@@ -87,6 +134,12 @@ const routes = [
       },
     ],
   },
+
+  // 兜底路由
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/',
+  }
 ];
 
 const router = createRouter({
@@ -99,11 +152,18 @@ router.beforeEach((to, from, next) => {
   const isPublic = Boolean(to.meta.public);
   const requiresAuth = Boolean(to.meta.requiresAuth);
   const hasToken = userStore.isLogin;
+  const role = userStore.userInfo?.role || '';
+  const isAdmin = role === USER_ROLE.ADMIN;
 
   if (to.path === '/login' && hasToken) {
-    next('/home');
+    next(isAdmin ? '/admin' : '/home');
     return;
   }
+
+  // 针对原来 / 重定向到 /home 的兼容
+  // 由于我们现在 / 指向了 Landing，不需要主动 redirect / 到 /home，
+  // 但如果业务逻辑需要在登录后直接进 /，且用户已登录，我们可以考虑跳 /home。
+  // 不过为了让已登录用户也能看主页，我们不需要拦截 /。
 
   if (!isPublic && requiresAuth && !hasToken) {
     next({
@@ -116,9 +176,15 @@ router.beforeEach((to, from, next) => {
   }
 
   if (to.meta.roles?.length) {
-    const role = userStore.userInfo?.role || '';
     if (!to.meta.roles.includes(role)) {
-      next('/home');
+      next(isAdmin ? '/admin' : '/home');
+      return;
+    }
+  }
+
+  if (to.meta.disallowRoles?.length) {
+    if (to.meta.disallowRoles.includes(role)) {
+      next(isAdmin ? '/admin' : '/home');
       return;
     }
   }

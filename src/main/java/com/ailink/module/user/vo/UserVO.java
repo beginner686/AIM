@@ -14,5 +14,6 @@ public class UserVO {
     private String country;
     private String city;
     private Integer status;
+    private String workerApplyStatus;
     private LocalDateTime createdTime;
 }

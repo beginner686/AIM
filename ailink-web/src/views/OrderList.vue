@@ -212,9 +212,11 @@ function serviceFeeText(order) {
   const status = order?.status;
   const feeStatus = order?.serviceFeeStatus;
   if (ORDER_CLOSED_STATUSES.includes(status)) return '订单已关闭';
+  if (status === 'WAIT_WORKER_ACCEPT' || status === 'SERVICE_FEE_PAID') return '已支付，待执行者接单';
+  if (status === 'SERVICE_FEE_REQUIRED' || status === 'CREATED') return '待支付服务费';
   if (ORDER_COMPLETED_STATUSES.includes(status)) return '服务费已支付';
   if (feeStatus === PAY_STATUS.PAID || feeStatus === 'PAID') return '服务费已支付';
-  if (ORDER_ACTIVE_STATUSES.includes(status)) return '待支付服务费';
+  if (ORDER_ACTIVE_STATUSES.includes(status)) return '服务费处理中';
   return '未开始';
 }
 

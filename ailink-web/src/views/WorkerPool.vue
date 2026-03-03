@@ -28,6 +28,13 @@
       show-icon
     />
     <el-alert
+      v-else-if="demandInfo && !isDemandOwner"
+      title="当前账号不是该需求的发布者，不能创建订单。请切换到发布该需求的账号。"
+      type="warning"
+      :closable="false"
+      show-icon
+    />
+    <el-alert
       v-else-if="demandInfo"
       :title="`当前需求 #${demandInfo.id}：${getCountryLabel(demandInfo.targetCountry) || demandInfo.targetCountry || '—'} / ${resolveDemandCategoryLabel(demandInfo.category) || '—'}`"
       type="info"
@@ -190,7 +197,7 @@
           <div class="action-row">
             <el-button
               type="primary"
-              :disabled="!demandId"
+              :disabled="!demandId || !isDemandOwner"
               :loading="Boolean(createLoadingMap[row.workerId])"
               @click="handleCreateOrder(row)"
             >
@@ -213,9 +220,11 @@ import { createOrderApi } from '@/api/order';
 import { getCountryDictApi } from '@/api/dict';
 import { CATEGORY_OPTIONS, CATEGORY_PRESETS } from '@/dicts';
 import { formatMoney } from '@/utils/format';
+import { useUserStore } from '@/store/modules/user';
 
 const router = useRouter();
 const route = useRoute();
+const userStore = useUserStore();
 
 const demandId = ref(route.query?.demandId ? Number(route.query.demandId) : 0);
 const listLoading = ref(false);
@@ -284,6 +293,14 @@ const avgQuote = computed(() => {
   if (workers.value.length === 0) return 0;
   const total = workers.value.reduce((sum, item) => sum + getEstimatedAmount(item), 0);
   return total / workers.value.length;
+});
+
+const currentUserId = computed(() => Number(userStore.userInfo?.id || 0));
+const demandOwnerId = computed(() => Number(demandInfo.value?.userId || 0));
+const isDemandOwner = computed(() => {
+  if (!demandId.value) return false;
+  if (!demandOwnerId.value) return true;
+  return currentUserId.value > 0 && currentUserId.value === demandOwnerId.value;
 });
 
 watch(
@@ -468,6 +485,10 @@ async function handleCreateOrder(worker) {
     ElMessage.warning('缺少 demandId，请先发布需求');
     return;
   }
+  if (!isDemandOwner.value) {
+    ElMessage.warning('仅需求发布者可以创建订单，请切换账号后再操作');
+    return;
+  }
   const workerId = Number(worker?.workerId || worker?.id || 0);
   if (!workerId) {
     ElMessage.error('执行者ID无效');
@@ -488,7 +509,12 @@ async function handleCreateOrder(worker) {
     ElMessage.success('订单创建成功');
     router.push(`/order/${orderId}`);
   } catch (error) {
-    ElMessage.error(error?.message || '创建订单失败，请稍后重试');
+    const message = String(error?.message || '').trim();
+    if (message.toLowerCase().includes('only demand owner can create order')) {
+      ElMessage.error('仅需求发布者可以创建订单，请切换账号后再操作');
+      return;
+    }
+    ElMessage.error(message || '创建订单失败，请稍后重试');
   } finally {
     createLoadingMap[workerId] = false;
   }

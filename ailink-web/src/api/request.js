@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus';
 import router from '@/router';
 import pinia from '@/store';
 import { useUserStore } from '@/store/modules/user';
+import { openAuthModal } from '@/composables/useAuthModal';
 
 const service = axios.create({
   baseURL: import.meta.env.VITE_BASE_API || '/api',
@@ -14,6 +15,10 @@ function jumpToLogin() {
   userStore.clearAuth();
   const currentRoute = router.currentRoute.value;
   if (currentRoute.path === '/login') {
+    return;
+  }
+  if (currentRoute.meta?.public) {
+    openAuthModal('login');
     return;
   }
   router.replace({

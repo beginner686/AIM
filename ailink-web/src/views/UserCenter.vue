@@ -45,6 +45,83 @@
       </article>
     </section>
 
+    <el-card v-if="!isWorker" shadow="never" class="ucx-demand-panel">
+      <template #header>
+        <div class="ucx-panel-header">
+          <div>
+            <h2>执行者入驻申请</h2>
+            <p>提交技能与实名信息，管理员审核通过后将自动升级为执行者账号。</p>
+          </div>
+          <el-tag :type="workerApplyTagType">{{ workerApplyStatusLabel }}</el-tag>
+        </div>
+      </template>
+
+      <div v-if="workerApplyLoading">
+        <el-skeleton :rows="4" animated />
+      </div>
+      <div v-else class="worker-apply-wrap">
+        <div class="worker-apply-meta">
+          <span>当前状态：{{ workerApplyStatusLabel }}</span>
+          <span v-if="workerApplyInfo?.reviewNote">审核意见：{{ workerApplyInfo.reviewNote }}</span>
+        </div>
+        <el-form :model="workerApplyForm" label-width="100px" class="worker-apply-form">
+          <el-form-item label="国家">
+            <el-input v-model.trim="workerApplyForm.country" placeholder="如：SG / Singapore" />
+          </el-form-item>
+          <el-form-item label="城市">
+            <el-input v-model.trim="workerApplyForm.city" placeholder="如：Singapore" />
+          </el-form-item>
+          <el-form-item label="技能标签">
+            <el-input v-model.trim="workerApplyForm.skillTags" placeholder="如：翻译, 视频剪辑" />
+          </el-form-item>
+          <el-form-item label="报价区间">
+            <div class="worker-apply-price-row">
+              <el-input-number v-model="workerApplyForm.priceMin" :min="0" :precision="2" />
+              <span>~</span>
+              <el-input-number v-model="workerApplyForm.priceMax" :min="0" :precision="2" />
+            </div>
+          </el-form-item>
+          <el-form-item label="实名">
+            <el-input v-model.trim="workerApplyForm.realName" placeholder="真实姓名" />
+          </el-form-item>
+          <el-form-item label="证件哈希">
+            <el-input v-model.trim="workerApplyForm.idNoHash" placeholder="证件号哈希，不上传明文" />
+          </el-form-item>
+          <el-form-item label="经验说明">
+            <el-input
+              v-model.trim="workerApplyForm.experience"
+              type="textarea"
+              :rows="2"
+              maxlength="300"
+              show-word-limit
+              placeholder="简要描述履约经验"
+            />
+          </el-form-item>
+          <el-form-item label="补充说明">
+            <el-input
+              v-model.trim="workerApplyForm.applyNote"
+              type="textarea"
+              :rows="2"
+              maxlength="500"
+              show-word-limit
+              placeholder="可选，提交给审核员"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button
+              type="primary"
+              :loading="workerApplySubmitting"
+              :disabled="!canSubmitWorkerApply"
+              @click="submitWorkerApply"
+            >
+              {{ workerApplyInfo?.status === 'REJECTED' ? '重新提交申请' : '提交执行者申请' }}
+            </el-button>
+            <span class="worker-apply-tip">{{ workerApplyActionTip }}</span>
+          </el-form-item>
+        </el-form>
+      </div>
+    </el-card>
+
     <el-card shadow="never" class="ucx-demand-panel">
       <template #header>
         <div class="ucx-panel-header">
@@ -77,7 +154,7 @@
           v-for="item in filteredDemands"
           :key="item.id"
           class="ucx-demand-card"
-          @click="goWorkerPool(item.id)"
+          @click="handleDemandCardClick(item)"
         >
           <div class="ucx-demand-top">
             <h3>{{ item.title || item.category || `需求 #${item.id}` }}</h3>
@@ -90,6 +167,26 @@
             <span>国家：{{ item.targetCountry || item.country || '—' }}</span>
             <span>预算：¥{{ formatMoney(item.budget) }}</span>
             <span>发布时间：{{ formatDate(item.createdTime) }}</span>
+          </div>
+          <div class="ucx-demand-actions">
+            <el-button size="small" @click.stop="goWorkerPool(item.id)">去匹配执行者</el-button>
+            <el-tooltip
+              :content="cancelDemandDisabledReason(item)"
+              placement="top"
+              :disabled="!cancelDemandDisabledReason(item)"
+            >
+              <span class="ucx-action-wrap">
+                <el-button
+                  size="small"
+                  type="danger"
+                  plain
+                  :disabled="!canCancelDemand(item)"
+                  @click.stop="handleCancelDemand(item)"
+                >
+                  取消需求
+                </el-button>
+              </span>
+            </el-tooltip>
           </div>
         </article>
       </div>
@@ -149,12 +246,13 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Edit } from '@element-plus/icons-vue';
 import { useUserStore } from '@/store/modules/user';
 import { getCurrentUserApi, updateUserProfileApi } from '@/api/user';
-import { getMyDemandListApi } from '@/api/demand';
+import { cancelDemandApi, getMyDemandListApi } from '@/api/demand';
 import { getMyRunnerPaymentProfileApi, upsertMyRunnerPaymentProfileApi } from '@/api/runner';
+import { getMyWorkerApplyApi, submitWorkerApplyApi } from '@/api/workerApply';
 import {
   DEMAND_ACTIVE_STATUSES,
   DEMAND_OPEN_STATUSES,
@@ -190,6 +288,20 @@ const runnerPaymentForm = ref({
   paymentUrl: '',
   currency: 'CNY',
 });
+const workerApplyLoading = ref(false);
+const workerApplySubmitting = ref(false);
+const workerApplyInfo = ref(null);
+const workerApplyForm = ref({
+  country: '',
+  city: '',
+  skillTags: '',
+  priceMin: 0,
+  priceMax: 0,
+  experience: '',
+  realName: '',
+  idNoHash: '',
+  applyNote: '',
+});
 
 const demandStatusOptions = computed(() => toSelectOptions(DEMAND_STATUS_DICT));
 
@@ -210,6 +322,30 @@ const locationText = computed(() => {
   const city = userInfo.value?.city || '';
   if (country && city) return `${country} · ${city}`;
   return country || city || '—';
+});
+
+const workerApplyStatus = computed(() => String(workerApplyInfo.value?.status || userInfo.value?.workerApplyStatus || 'NONE').toUpperCase());
+const workerApplyStatusLabel = computed(() => {
+  if (workerApplyStatus.value === 'PENDING') return '待审核';
+  if (workerApplyStatus.value === 'APPROVED') return '已通过';
+  if (workerApplyStatus.value === 'REJECTED') return '已驳回';
+  return '未申请';
+});
+const workerApplyTagType = computed(() => {
+  if (workerApplyStatus.value === 'PENDING') return 'warning';
+  if (workerApplyStatus.value === 'APPROVED') return 'success';
+  if (workerApplyStatus.value === 'REJECTED') return 'danger';
+  return 'info';
+});
+const canSubmitWorkerApply = computed(() => {
+  if (isWorker.value) return false;
+  return workerApplyStatus.value === 'NONE' || workerApplyStatus.value === 'REJECTED';
+});
+const workerApplyActionTip = computed(() => {
+  if (workerApplyStatus.value === 'PENDING') return '审核中，请等待管理员处理。';
+  if (workerApplyStatus.value === 'APPROVED') return '审核已通过，刷新后可使用执行者功能。';
+  if (workerApplyStatus.value === 'REJECTED') return '可修改资料后重新提交。';
+  return '提交后通常在管理员审核通过后生效。';
 });
 
 const filteredDemands = computed(() => {
@@ -291,6 +427,58 @@ function goWorkerPool(demandId) {
   });
 }
 
+function canCancelDemand(item) {
+  return String(item?.status || '').toUpperCase() === 'OPEN';
+}
+
+function cancelDemandDisabledReason(item) {
+  const status = String(item?.status || '').toUpperCase();
+  if (!status || status === 'OPEN') {
+    return '';
+  }
+  if (status === 'MATCHED' || status === 'IN_PROGRESS') {
+    return '该需求已进入匹配/履约，请先取消相关订单后再取消需求';
+  }
+  if (status === 'DONE') {
+    return '该需求已完成，不能取消';
+  }
+  if (status === 'CLOSED') {
+    return '该需求已关闭，无需重复取消';
+  }
+  return `当前状态 ${status} 不支持取消`;
+}
+
+function handleDemandCardClick(item) {
+  const status = String(item?.status || '').toUpperCase();
+  if (status !== 'OPEN' && status !== 'MATCHED') {
+    return;
+  }
+  goWorkerPool(item?.id);
+}
+
+async function handleCancelDemand(item) {
+  const demandId = Number(item?.id || 0);
+  if (!demandId || !canCancelDemand(item)) {
+    const reason = cancelDemandDisabledReason(item);
+    if (reason) ElMessage.warning(reason);
+    return;
+  }
+  try {
+    await ElMessageBox.confirm('确认取消该需求？取消后将不再参与匹配。', '取消需求', {
+      confirmButtonText: '确认取消',
+      cancelButtonText: '返回',
+      type: 'warning',
+    });
+    await cancelDemandApi(demandId);
+    ElMessage.success('需求已取消');
+    await loadDemands();
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error?.message || '取消需求失败，请稍后重试');
+    }
+  }
+}
+
 async function handleSave() {
   saving.value = true;
   try {
@@ -302,6 +490,74 @@ async function handleSave() {
     ElMessage.error('更新失败，请稍后重试');
   } finally {
     saving.value = false;
+  }
+}
+
+function fillWorkerApplyForm(source = {}) {
+  workerApplyForm.value = {
+    country: source?.country || userInfo.value?.country || '',
+    city: source?.city || userInfo.value?.city || '',
+    skillTags: source?.skillTags || '',
+    priceMin: Number(source?.priceMin || 0),
+    priceMax: Number(source?.priceMax || 0),
+    experience: source?.experience || '',
+    realName: source?.realName || '',
+    idNoHash: source?.idNoHash || '',
+    applyNote: source?.applyNote || '',
+  };
+}
+
+async function loadWorkerApply() {
+  if (isWorker.value) {
+    workerApplyInfo.value = null;
+    return;
+  }
+  workerApplyLoading.value = true;
+  try {
+    const data = await getMyWorkerApplyApi();
+    workerApplyInfo.value = data || null;
+    fillWorkerApplyForm(data || {});
+  } catch {
+    workerApplyInfo.value = null;
+    fillWorkerApplyForm({});
+  } finally {
+    workerApplyLoading.value = false;
+  }
+}
+
+async function submitWorkerApply() {
+  if (!canSubmitWorkerApply.value || workerApplySubmitting.value) {
+    return;
+  }
+  if (!workerApplyForm.value.country || !workerApplyForm.value.city || !workerApplyForm.value.skillTags
+    || !workerApplyForm.value.realName || !workerApplyForm.value.idNoHash) {
+    ElMessage.warning('请先完整填写必填项');
+    return;
+  }
+  if (Number(workerApplyForm.value.priceMax || 0) < Number(workerApplyForm.value.priceMin || 0)) {
+    ElMessage.warning('报价上限不能低于下限');
+    return;
+  }
+  workerApplySubmitting.value = true;
+  try {
+    const payload = {
+      country: String(workerApplyForm.value.country || '').trim(),
+      city: String(workerApplyForm.value.city || '').trim(),
+      skillTags: String(workerApplyForm.value.skillTags || '').trim(),
+      priceMin: Number(workerApplyForm.value.priceMin || 0),
+      priceMax: Number(workerApplyForm.value.priceMax || 0),
+      experience: String(workerApplyForm.value.experience || '').trim(),
+      realName: String(workerApplyForm.value.realName || '').trim(),
+      idNoHash: String(workerApplyForm.value.idNoHash || '').trim(),
+      applyNote: String(workerApplyForm.value.applyNote || '').trim(),
+    };
+    await submitWorkerApplyApi(payload);
+    ElMessage.success('执行者申请已提交，请等待审核');
+    await Promise.allSettled([loadUserProfile(), loadWorkerApply()]);
+  } catch {
+    ElMessage.error('执行者申请提交失败');
+  } finally {
+    workerApplySubmitting.value = false;
   }
 }
 
@@ -348,7 +604,7 @@ async function saveRunnerPaymentProfile() {
 
 onMounted(async () => {
   await loadUserProfile();
-  await Promise.allSettled([loadDemands(), loadRunnerPaymentProfile()]);
+  await Promise.allSettled([loadDemands(), loadRunnerPaymentProfile(), loadWorkerApply()]);
 });
 </script>
 
@@ -558,8 +814,48 @@ onMounted(async () => {
   color: #94a3b8;
 }
 
+.ucx-demand-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.ucx-action-wrap {
+  display: inline-block;
+}
+
 .runner-payment-form {
   max-width: 720px;
+}
+
+.worker-apply-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.worker-apply-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.worker-apply-form {
+  max-width: 760px;
+}
+
+.worker-apply-price-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.worker-apply-tip {
+  margin-left: 10px;
+  font-size: 12px;
+  color: #64748b;
 }
 
 @media (max-width: 1100px) {

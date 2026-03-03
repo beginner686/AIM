@@ -47,4 +47,10 @@ public class DemandController {
     public Result<DemandVO> detail(@PathVariable Long demandId) {
         return Result.success(demandService.getById(demandId));
     }
+
+    @PostMapping("/{demandId}/cancel")
+    public Result<Void> cancel(@PathVariable Long demandId) {
+        demandService.cancelMyDemand(SecurityContextUtil.currentUserId(), demandId);
+        return Result.success();
+    }
 }

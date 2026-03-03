@@ -73,7 +73,7 @@ public class OrderServiceImpl implements OrderService {
             throw new BizException(ErrorCode.NOT_FOUND.getCode(), "demand not found");
         }
         if (!employerId.equals(demand.getUserId())) {
-            throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only demand owner can create order");
+            throw new BizException(ErrorCode.FORBIDDEN.getCode(), "仅需求发布者可创建订单");
         }
 
         WorkerProfile workerProfile = workerProfileMapper.selectById(request.getWorkerProfileId());
@@ -142,19 +142,87 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void acceptWork(Long workerUserId, Long orderId, String remark) {
+        Order order = findById(orderId);
+        if (!workerUserId.equals(order.getWorkerUserId())) {
+            throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only runner can accept order");
+        }
+        if (!OrderStatus.WAIT_WORKER_ACCEPT.name().equals(order.getStatus())
+                && !OrderStatus.SERVICE_FEE_PAID.name().equals(order.getStatus())) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(),
+                    "order can only be accepted when status is WAIT_WORKER_ACCEPT");
+        }
+        updateOrderStatus(workerUserId, orderId, OrderStatus.MATCH_UNLOCKED,
+                StringUtils.hasText(remark) ? remark : "worker accepted order");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void rejectWork(Long workerUserId, Long orderId, String remark) {
+        Order order = findById(orderId);
+        if (!workerUserId.equals(order.getWorkerUserId())) {
+            throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only runner can reject order");
+        }
+        if (!OrderStatus.WAIT_WORKER_ACCEPT.name().equals(order.getStatus())
+                && !OrderStatus.SERVICE_FEE_PAID.name().equals(order.getStatus())) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(),
+                    "order can only be rejected when status is WAIT_WORKER_ACCEPT");
+        }
+
+        String closeRemark = StringUtils.hasText(remark) ? remark : "worker rejected order";
+        updateOrderStatus(workerUserId, orderId, OrderStatus.CLOSED, closeRemark);
+
+        Order update = new Order();
+        update.setId(orderId);
+        update.setClosedReason(closeRemark);
+        if ("PAID".equals(order.getPayStatus())) {
+            update.setPayStatus("REFUNDED");
+        }
+        orderMapper.updateById(update);
+        reopenDemandIfAllOrdersClosed(order.getDemandId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void startWork(Long workerUserId, Long orderId, String remark) {
         Order order = findById(orderId);
         if (!workerUserId.equals(order.getWorkerUserId())) {
             throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only runner can start work");
         }
-        if (OrderStatus.SERVICE_FEE_PAID.name().equals(order.getStatus())) {
-            updateOrderStatus(workerUserId, orderId, OrderStatus.MATCH_UNLOCKED, "match info unlocked");
-            order = findById(orderId);
-        }
         if (!OrderStatus.MATCH_UNLOCKED.name().equals(order.getStatus())) {
             throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "work can only be started when status is MATCH_UNLOCKED");
         }
         updateOrderStatus(workerUserId, orderId, OrderStatus.IN_PROGRESS, StringUtils.hasText(remark) ? remark : "work started");
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelByEmployer(Long employerId, Long orderId, String remark) {
+        Order order = findById(orderId);
+        if (!employerId.equals(order.getEmployerId())) {
+            throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only client can cancel order");
+        }
+        if (OrderStatus.CLOSED.name().equals(order.getStatus())) {
+            return;
+        }
+        if (OrderStatus.IN_PROGRESS.name().equals(order.getStatus())
+                || OrderStatus.COMPLETED.name().equals(order.getStatus())
+                || OrderStatus.DISPUTE.name().equals(order.getStatus())
+                || OrderStatus.ARBITRATION.name().equals(order.getStatus())) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "order cannot be canceled in current status");
+        }
+
+        String closeRemark = StringUtils.hasText(remark) ? remark : "order canceled by client";
+        updateOrderStatus(employerId, orderId, OrderStatus.CLOSED, closeRemark);
+
+        Order update = new Order();
+        update.setId(orderId);
+        update.setClosedReason(closeRemark);
+        if ("PAID".equals(order.getPayStatus())) {
+            update.setPayStatus("REFUNDED");
+        }
+        orderMapper.updateById(update);
+        reopenDemandIfAllOrdersClosed(order.getDemandId());
     }
 
     @Override
@@ -239,8 +307,12 @@ public class OrderServiceImpl implements OrderService {
             throw new BizException(ErrorCode.FORBIDDEN.getCode(), "no permission on this order");
         }
 
-        boolean showContact = ServiceFeeStatus.PAID.name().equals(order.getServiceFeeStatus());
         OrderStatus currentStatus = parseStatus(order.getStatus());
+        boolean showContact = currentStatus == OrderStatus.MATCH_UNLOCKED
+                || currentStatus == OrderStatus.IN_PROGRESS
+                || currentStatus == OrderStatus.COMPLETED
+                || currentStatus == OrderStatus.DISPUTE
+                || currentStatus == OrderStatus.ARBITRATION;
 
         WorkerProfile workerProfile = workerProfileMapper.selectById(order.getWorkerProfileId());
         User workerUser = userMapper.selectById(order.getWorkerUserId());
@@ -309,6 +381,28 @@ public class OrderServiceImpl implements OrderService {
         log.setOperatorId(operatorId);
         log.setRemark(remark);
         orderStatusLogMapper.insert(log);
+    }
+
+    private void reopenDemandIfAllOrdersClosed(Long demandId) {
+        if (demandId == null) {
+            return;
+        }
+        Long activeOrderCount = orderMapper.selectCount(new LambdaQueryWrapper<Order>()
+                .eq(Order::getDemandId, demandId)
+                .ne(Order::getStatus, OrderStatus.CLOSED.name()));
+        if (activeOrderCount != null && activeOrderCount == 0L) {
+            Demand demand = demandMapper.selectById(demandId);
+            if (demand == null) {
+                return;
+            }
+            if ("DONE".equalsIgnoreCase(demand.getStatus()) || "CLOSED".equalsIgnoreCase(demand.getStatus())) {
+                return;
+            }
+            Demand update = new Demand();
+            update.setId(demandId);
+            update.setStatus("OPEN");
+            demandMapper.updateById(update);
+        }
     }
 
     private String buildOrderNo() {

@@ -36,27 +36,68 @@
     <el-card shadow="never" class="action-panel">
       <template #header>订单操作</template>
       <div v-if="order.status === ORDER_STATUS.SERVICE_FEE_REQUIRED" class="action-row">
-        <el-button
-          v-if="isEmployer && canClientOperate"
-          type="primary"
-          :loading="actionLoading"
-          @click="handlePayServiceFee"
-        >
-          支付服务费并解锁
-        </el-button>
+        <template v-if="isEmployer && canClientOperate">
+          <el-button
+            type="primary"
+            :loading="actionLoading"
+            @click="handlePayServiceFee"
+          >
+            支付服务费并解锁
+          </el-button>
+          <el-button
+            type="danger"
+            plain
+            :loading="actionLoading"
+            @click="handleCancelOrder"
+          >
+            取消订单
+          </el-button>
+        </template>
         <span class="action-tip">
           {{ isEmployer
             ? (canClientOperate
-              ? '支付后可解锁执行者联系方式、收款方式和聊天入口。'
+              ? '支付后进入待执行者接单，接单后解锁联系方式、收款方式和聊天入口。'
               : '当前账号角色无支付权限，请使用需求方账号（USER/EMPLOYER/CLIENT）。')
             : '等待需求方支付服务费后解锁。' }}
         </span>
       </div>
 
-      <div v-else-if="order.status === ORDER_STATUS.MATCH_UNLOCKED || order.status === ORDER_STATUS.SERVICE_FEE_PAID" class="action-row">
+      <div v-else-if="order.status === ORDER_STATUS.WAIT_WORKER_ACCEPT || order.status === ORDER_STATUS.SERVICE_FEE_PAID" class="action-row">
+        <template v-if="isWorker">
+          <el-button type="success" :loading="actionLoading" @click="handleAccept">确认接单</el-button>
+          <el-button type="danger" :loading="actionLoading" @click="handleReject">拒绝接单</el-button>
+        </template>
+        <el-button
+          v-if="isEmployer && canClientOperate"
+          type="danger"
+          plain
+          :loading="actionLoading"
+          @click="handleCancelOrder"
+        >
+          取消订单
+        </el-button>
+        <span class="action-tip">
+          {{ isWorker
+            ? '请确认是否接单，接单后可开始履约。'
+            : (isEmployer && canClientOperate ? '可继续等待执行者接单，或主动取消订单。' : '等待执行者确认接单。') }}
+        </span>
+      </div>
+
+      <div v-else-if="order.status === ORDER_STATUS.MATCH_UNLOCKED" class="action-row">
+        <el-button
+          v-if="isEmployer && canClientOperate"
+          type="danger"
+          plain
+          :loading="actionLoading"
+          @click="handleCancelOrder"
+        >
+          取消订单
+        </el-button>
         <el-button v-if="isWorker" type="success" :loading="actionLoading" @click="handleStart">开始工作</el-button>
         <span class="action-tip">
-          {{ isWorker ? '执行者确认开始后进入履约阶段。' : '等待执行者开始工作。' }}
+          {{ isWorker
+            ? '执行者确认开始后进入履约阶段。'
+            : (isEmployer && canClientOperate ? '执行者尚未开始工作，你可以选择取消订单。' : '等待执行者开始工作。') }}
         </span>
       </div>
 
@@ -93,7 +134,7 @@
       <template #header>执行者联系方式与收款方式</template>
       <el-alert
         v-if="!detail.showContact"
-        title="支付服务费后可解锁执行者联系方式与收款方式"
+        title="执行者接单后可解锁联系方式与收款方式"
         type="warning"
         :closable="false"
         show-icon
@@ -200,6 +241,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
+  cancelOrderApi,
   completeOrderApi,
   createOrderReviewApi,
   disputeOrderApi,
@@ -207,6 +249,8 @@ import {
   getOrderDetailApi,
   getOrderReviewsApi,
   payServiceFeeApi,
+  acceptOrderApi,
+  rejectOrderApi,
   sendOrderChatMessageApi,
   startWorkApi,
 } from '@/api/order';
@@ -354,13 +398,47 @@ async function handlePayServiceFee() {
     const codeUrl = String(paymentData?.codeUrl || '');
     if (codeUrl.startsWith('mock://auto-success/')) {
       await loadDetail();
-      ElMessage.success('测试模式已自动支付成功，执行者信息已解锁');
+      ElMessage.success('测试模式已自动支付成功，等待执行者接单');
     } else if (codeUrl) {
       window.open(paymentData.codeUrl, '_blank');
-      ElMessage.success('已生成支付二维码，请完成支付后刷新页面');
+      ElMessage.success('已生成支付二维码，请完成支付，支付后将进入待执行者接单');
     } else {
-      ElMessage.success('支付单已创建，请完成支付后刷新页面');
+      ElMessage.success('支付单已创建，请完成支付，支付后将进入待执行者接单');
     }
+  } catch (error) {
+    if (!isCancelError(error)) {}
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleAccept() {
+  if (actionLoading.value || !isWorker.value) return;
+  try {
+    await ElMessageBox.confirm('确认接单并解锁联系方式？', '接单确认', { type: 'warning' });
+    actionLoading.value = true;
+    await acceptOrderApi(order.value.id);
+    ElMessage.success('已接单，订单已解锁');
+    await loadDetail();
+  } catch (error) {
+    if (!isCancelError(error)) {}
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleReject() {
+  if (actionLoading.value || !isWorker.value) return;
+  try {
+    const { value: reason } = await ElMessageBox.prompt('可填写拒单原因（选填）', '拒绝接单', {
+      confirmButtonText: '确认拒单',
+      cancelButtonText: '取消',
+      inputPlaceholder: '例如：当前排期冲突',
+    });
+    actionLoading.value = true;
+    await rejectOrderApi(order.value.id, String(reason || '').trim());
+    ElMessage.success('已拒单，订单已关闭');
+    await loadDetail();
   } catch (error) {
     if (!isCancelError(error)) {}
   } finally {
@@ -390,6 +468,25 @@ async function handleComplete() {
     actionLoading.value = true;
     await completeOrderApi(order.value.id);
     ElMessage.success('订单已完成');
+    await loadDetail();
+  } catch (error) {
+    if (!isCancelError(error)) {}
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleCancelOrder() {
+  if (actionLoading.value || !isEmployer.value || !canClientOperate.value) return;
+  try {
+    const { value: reason } = await ElMessageBox.prompt('可填写取消原因（选填）', '取消订单', {
+      confirmButtonText: '确认取消',
+      cancelButtonText: '返回',
+      inputPlaceholder: '例如：需求变更',
+    });
+    actionLoading.value = true;
+    await cancelOrderApi(order.value.id, String(reason || '').trim());
+    ElMessage.success('订单已取消');
     await loadDetail();
   } catch (error) {
     if (!isCancelError(error)) {}

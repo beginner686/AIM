@@ -15,4 +15,6 @@ public interface DemandService {
     List<DemandVO> listMyDemand(Long userId);
 
     DemandVO getById(Long demandId);
+
+    void cancelMyDemand(Long userId, Long demandId);
 }

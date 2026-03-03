@@ -1,0 +1,22 @@
+{
+    "nav": {
+        "home": "Home",
+        "demands": "Demand Hall",
+        "workers": "Talent Pool",
+        "categories": "Service Categories"
+    },
+    "action": {
+        "workspace": "Workspace",
+        "login": "Log In",
+        "register": "Start for Free",
+        "registerEmployer": "Hire Talent",
+        "registerWorker": "Become a Talent",
+        "loginAccount": "Log In to Account"
+    },
+    "footer": {
+        "tagline": "Connecting premium global skills, driving cross-border business growth",
+        "platform": "Platform",
+        "join": "Join Us",
+        "copyright": "AI-Link · Global Cross-Border HR Service Platform"
+    }
+}

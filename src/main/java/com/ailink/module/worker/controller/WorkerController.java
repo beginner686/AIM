@@ -1,6 +1,8 @@
 package com.ailink.module.worker.controller;
 
 import com.ailink.common.Result;
+import com.ailink.common.ErrorCode;
+import com.ailink.common.exception.BizException;
 import com.ailink.module.worker.dto.WorkerProfileUpsertRequest;
 import com.ailink.module.worker.dto.WorkerQueryRequest;
 import com.ailink.module.worker.service.WorkerProfileService;
@@ -28,6 +30,10 @@ public class WorkerController {
 
     @PostMapping("/profile")
     public Result<Map<String, Long>> upsertProfile(@Valid @RequestBody WorkerProfileUpsertRequest request) {
+        String role = SecurityContextUtil.currentRole();
+        if (!"WORKER".equalsIgnoreCase(role) && !"RUNNER".equalsIgnoreCase(role)) {
+            throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only worker can edit worker profile");
+        }
         Long profileId = workerProfileService.upsertProfile(SecurityContextUtil.currentUserId(), request);
         return Result.success(Map.of("profileId", profileId));
     }

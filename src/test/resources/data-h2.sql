@@ -1,7 +1,7 @@
-INSERT INTO user_account (id, role, username, password, email, country, city, status, deleted)
+INSERT INTO user_account (id, role, username, password, email, country, city, status, worker_apply_status, deleted)
 VALUES
-  (1, 'EMPLOYER', 'client_a', 'x', 'client@ailink.test', 'CN', 'Shanghai', 1, 0),
-  (2, 'WORKER', 'runner_a', 'x', 'runner@ailink.test', 'SG', 'Singapore', 1, 0);
+  (1, 'EMPLOYER', 'client_a', 'x', 'client@ailink.test', 'CN', 'Shanghai', 1, 'NONE', 0),
+  (2, 'WORKER', 'runner_a', 'x', 'runner@ailink.test', 'SG', 'Singapore', 1, 'APPROVED', 0);
 
 INSERT INTO demand (id, user_id, target_country, category, budget, description, status, deleted)
 VALUES

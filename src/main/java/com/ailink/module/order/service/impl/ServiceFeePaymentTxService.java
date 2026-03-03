@@ -154,9 +154,9 @@ public class ServiceFeePaymentTxService {
         order.setPayStatus("PAID");
         orderMapper.updateById(order);
 
-        if (!OrderStatus.SERVICE_FEE_PAID.name().equals(order.getStatus())) {
-            String statusRemark = StringUtils.hasText(remark) ? remark : "service fee paid";
-            orderService.updateOrderStatus(order.getEmployerId(), order.getId(), OrderStatus.SERVICE_FEE_PAID, statusRemark);
+        if (!OrderStatus.WAIT_WORKER_ACCEPT.name().equals(order.getStatus())) {
+            String statusRemark = StringUtils.hasText(remark) ? remark : "service fee paid, waiting worker accept";
+            orderService.updateOrderStatus(order.getEmployerId(), order.getId(), OrderStatus.WAIT_WORKER_ACCEPT, statusRemark);
         }
     }
 

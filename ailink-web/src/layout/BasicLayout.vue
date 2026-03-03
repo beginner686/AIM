@@ -3,14 +3,16 @@
     <header class="header">
       <div class="header-inner">
         <!-- 品牌 -->
-        <RouterLink to="/home" class="brand">
-          <span class="brand-icon">◆</span>
+        <RouterLink :to="homePath" class="brand">
+          <span class="brand-logo">
+            <img :src="brandLogoUrl" alt="AI-Link" />
+          </span>
           <span class="brand-text">AI-Link</span>
         </RouterLink>
 
         <!-- 导航 -->
         <nav class="nav">
-          <RouterLink v-for="item in navItems" :key="item.to" :to="item.to" class="nav-link">
+          <RouterLink v-for="item in navItems" :key="item.key" :to="item.to" class="nav-link">
             {{ item.label }}
           </RouterLink>
         </nav>
@@ -35,23 +37,34 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/modules/user';
+import { USER_ROLE } from '@/dicts';
 
 const router = useRouter();
 const userStore = useUserStore();
+const brandLogoUrl = '/brand-logo.png';
+const isAdmin = computed(() => userStore.userInfo?.role === USER_ROLE.ADMIN);
+const homePath = computed(() => (isAdmin.value ? '/admin' : '/home'));
 
 const avatarLetter = computed(() => {
   const name = userStore.userInfo?.username || '';
   return name.charAt(0).toUpperCase() || 'U';
 });
 
-const navItems = [
-  { to: '/home', label: '首页' },
-  { to: '/publish-demand', label: '发布需求' },
-  { to: '/worker-pool', label: '执行者' },
-  { to: '/orders', label: '我的订单' },
-  { to: '/user-center', label: '个人中心' },
-  { to: '/admin', label: '管理' },
+const adminNavItems = [
+  { key: 'admin-overview', to: '/admin', label: '管理总览' },
+  { key: 'admin-worker-apply', to: { path: '/admin', query: { tab: 'workerApply' } }, label: '执行者审核' },
+  { key: 'admin-fees', to: { path: '/admin', query: { tab: 'fees' } }, label: '费率配置' },
 ];
+
+const userNavItems = [
+  { key: 'home', to: '/home', label: '首页' },
+  { key: 'publish-demand', to: '/publish-demand', label: '发布需求' },
+  { key: 'worker-pool', to: '/worker-pool', label: '执行者' },
+  { key: 'orders', to: '/orders', label: '我的订单' },
+  { key: 'user-center', to: '/user-center', label: '个人中心' },
+];
+
+const navItems = computed(() => (isAdmin.value ? adminNavItems : userNavItems));
 
 function logout() {
   userStore.clearAuth();
@@ -95,17 +108,20 @@ function logout() {
   text-decoration: none;
   flex-shrink: 0;
 }
-.brand-icon {
+.brand-logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #0b4b6f, #0f766e);
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 800;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+.brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .brand-text {
   font-size: 18px;

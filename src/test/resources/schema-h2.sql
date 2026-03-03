@@ -1,8 +1,10 @@
 DROP TABLE IF EXISTS runner_payment_profile;
 DROP TABLE IF EXISTS platform_payment;
 DROP TABLE IF EXISTS order_status_log;
+DROP TABLE IF EXISTS demand_apply;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS worker_profile;
+DROP TABLE IF EXISTS worker_apply;
 DROP TABLE IF EXISTS demand;
 DROP TABLE IF EXISTS platform_config;
 DROP TABLE IF EXISTS user_account;
@@ -16,6 +18,7 @@ CREATE TABLE user_account (
   country VARCHAR(100),
   city VARCHAR(100),
   status TINYINT NOT NULL DEFAULT 1,
+  worker_apply_status VARCHAR(20) NOT NULL DEFAULT 'NONE',
   created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted TINYINT NOT NULL DEFAULT 0
@@ -54,6 +57,27 @@ CREATE TABLE worker_profile (
   deleted TINYINT NOT NULL DEFAULT 0
 );
 
+CREATE TABLE worker_apply (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  country VARCHAR(100) NOT NULL,
+  city VARCHAR(100) NOT NULL,
+  skill_tags VARCHAR(1000) NOT NULL,
+  price_min DECIMAL(12,2) DEFAULT 0.00,
+  price_max DECIMAL(12,2) DEFAULT 0.00,
+  experience VARCHAR(1000),
+  real_name VARCHAR(100) NOT NULL,
+  id_no_hash VARCHAR(128) NOT NULL,
+  apply_note VARCHAR(500),
+  review_note VARCHAR(500),
+  reviewed_by BIGINT,
+  reviewed_time TIMESTAMP,
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0
+);
+
 CREATE TABLE orders (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   order_no VARCHAR(32) NOT NULL,
@@ -80,6 +104,23 @@ CREATE TABLE orders (
   updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted TINYINT NOT NULL DEFAULT 0,
   UNIQUE(order_no)
+);
+
+CREATE TABLE demand_apply (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  demand_id BIGINT NOT NULL,
+  demand_owner_id BIGINT NOT NULL,
+  worker_user_id BIGINT NOT NULL,
+  worker_profile_id BIGINT NOT NULL,
+  quote_amount DECIMAL(12,2) NOT NULL,
+  apply_note VARCHAR(1000),
+  status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+  review_note VARCHAR(500),
+  order_id BIGINT,
+  handled_time TIMESTAMP,
+  created_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted TINYINT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE order_status_log (

@@ -22,7 +22,8 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity, JwtAuthenticationFilter jwtAuthenticationFilter)
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity,
+            JwtAuthenticationFilter jwtAuthenticationFilter)
             throws Exception {
         httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
@@ -32,13 +33,14 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/dict/public/**",
+                                "/api/public/**",
                                 "/api/payment/wechat/notify",
                                 "/doc.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/webjars/**",
-                                "/error"
-                        ).permitAll()
+                                "/error")
+                        .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(exception -> exception

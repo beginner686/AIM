@@ -78,6 +78,66 @@
         </el-table>
       </el-tab-pane>
 
+      <el-tab-pane label="执行者入驻审核" name="workerApply">
+        <div class="apply-toolbar">
+          <el-radio-group v-model="workerApplyStatusFilter" size="small" @change="loadWorkerApplyList">
+            <el-radio-button label="">全部</el-radio-button>
+            <el-radio-button label="PENDING">待审核</el-radio-button>
+            <el-radio-button label="APPROVED">已通过</el-radio-button>
+            <el-radio-button label="REJECTED">已驳回</el-radio-button>
+          </el-radio-group>
+          <el-button size="small" :loading="workerApplyLoading" @click="loadWorkerApplyList">刷新</el-button>
+        </div>
+        <el-empty v-if="!workerApplyLoading && workerApplyList.length === 0" description="暂无入驻申请" />
+        <el-table v-else v-loading="workerApplyLoading" :data="workerApplyList" stripe>
+          <el-table-column prop="id" label="申请ID" min-width="90" />
+          <el-table-column prop="userId" label="用户ID" min-width="90" />
+          <el-table-column prop="realName" label="姓名" min-width="100" />
+          <el-table-column label="地区" min-width="120">
+            <template #default="{ row }">{{ row.country || '—' }} / {{ row.city || '—' }}</template>
+          </el-table-column>
+          <el-table-column prop="skillTags" label="技能" min-width="180" show-overflow-tooltip />
+          <el-table-column label="报价" min-width="130">
+            <template #default="{ row }">¥{{ fmt(row.priceMin) }} ~ ¥{{ fmt(row.priceMax) }}</template>
+          </el-table-column>
+          <el-table-column label="状态" min-width="100">
+            <template #default="{ row }">
+              <el-tag :type="workerApplyTagType(row.status)">{{ workerApplyStatusText(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="申请时间" min-width="160">
+            <template #default="{ row }">{{ formatDateTime(row.createdTime) }}</template>
+          </el-table-column>
+          <el-table-column label="审核意见" min-width="180" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.reviewNote || '—' }}</template>
+          </el-table-column>
+          <el-table-column label="操作" min-width="170" fixed="right">
+            <template #default="{ row }">
+              <el-button
+                size="small"
+                type="success"
+                plain
+                :disabled="row.status !== 'PENDING'"
+                :loading="Boolean(actionLoadingMap[`approve-${row.id}`])"
+                @click="handleApproveApply(row)"
+              >
+                通过
+              </el-button>
+              <el-button
+                size="small"
+                type="danger"
+                plain
+                :disabled="row.status !== 'PENDING'"
+                :loading="Boolean(actionLoadingMap[`reject-${row.id}`])"
+                @click="handleRejectApply(row)"
+              >
+                驳回
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
       <!-- 费率配置 -->
       <el-tab-pane label="费率配置" name="fees">
         <div class="fee-section">
@@ -109,7 +169,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { reactive, ref, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import {
   getStatSummaryApi,
   getStatByCountryApi,
@@ -117,22 +178,78 @@ import {
   getWorkerIncomeRankApi,
   getFeeConfigApi,
   updateFeeConfigApi,
+  getWorkerApplyListApi,
+  approveWorkerApplyApi,
+  rejectWorkerApplyApi,
 } from '@/api/admin';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const loading = ref(true);
-const activeTab = ref('country');
+const route = useRoute();
+const router = useRouter();
+const ADMIN_TABS = ['country', 'category', 'rank', 'workerApply', 'fees'];
+
+function normalizeTab(tab) {
+  const key = String(tab || '').trim();
+  return ADMIN_TABS.includes(key) ? key : 'country';
+}
+
+const activeTab = ref(normalizeTab(route.query.tab));
 
 const summary = ref({ totalAmount: 0, totalPlatformFee: 0, totalEscrowFee: 0, orderCount: 0 });
 const countryStats = ref([]);
 const categoryStats = ref([]);
 const workerRank = ref([]);
+const workerApplyStatusFilter = ref('PENDING');
+const workerApplyLoading = ref(false);
+const workerApplyList = ref([]);
+const actionLoadingMap = reactive({});
 
 const feeForm = ref({ platformFeeRate: 0.06, escrowFeeRate: 0.005 });
 const savingFee = ref(false);
 
 function fmt(val) {
   return Number(val || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatDateTime(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${d} ${hh}:${mm}`;
+}
+
+function workerApplyStatusText(status) {
+  const key = String(status || '').toUpperCase();
+  if (key === 'PENDING') return '待审核';
+  if (key === 'APPROVED') return '已通过';
+  if (key === 'REJECTED') return '已驳回';
+  return key || '—';
+}
+
+function workerApplyTagType(status) {
+  const key = String(status || '').toUpperCase();
+  if (key === 'PENDING') return 'warning';
+  if (key === 'APPROVED') return 'success';
+  if (key === 'REJECTED') return 'danger';
+  return 'info';
+}
+
+async function loadWorkerApplyList() {
+  workerApplyLoading.value = true;
+  try {
+    const data = await getWorkerApplyListApi(workerApplyStatusFilter.value || '');
+    workerApplyList.value = Array.isArray(data) ? data : [];
+  } catch {
+    workerApplyList.value = [];
+  } finally {
+    workerApplyLoading.value = false;
+  }
 }
 
 async function handleSaveFee() {
@@ -150,6 +267,54 @@ async function handleSaveFee() {
   }
 }
 
+async function handleApproveApply(row) {
+  const applyId = Number(row?.id || 0);
+  if (!applyId || actionLoadingMap[`approve-${applyId}`]) {
+    return;
+  }
+  try {
+    await ElMessageBox.confirm('确认审核通过该执行者申请？', '执行者审核', {
+      confirmButtonText: '通过',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
+    actionLoadingMap[`approve-${applyId}`] = true;
+    await approveWorkerApplyApi(applyId, '');
+    ElMessage.success('申请已通过');
+    await loadWorkerApplyList();
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error?.message || '操作失败');
+    }
+  } finally {
+    actionLoadingMap[`approve-${applyId}`] = false;
+  }
+}
+
+async function handleRejectApply(row) {
+  const applyId = Number(row?.id || 0);
+  if (!applyId || actionLoadingMap[`reject-${applyId}`]) {
+    return;
+  }
+  try {
+    const { value: reviewNote } = await ElMessageBox.prompt('可填写驳回原因（选填）', '执行者审核', {
+      confirmButtonText: '确认驳回',
+      cancelButtonText: '取消',
+      inputPlaceholder: '例如：身份信息不完整',
+    });
+    actionLoadingMap[`reject-${applyId}`] = true;
+    await rejectWorkerApplyApi(applyId, String(reviewNote || '').trim());
+    ElMessage.success('申请已驳回');
+    await loadWorkerApplyList();
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error?.message || '操作失败');
+    }
+  } finally {
+    actionLoadingMap[`reject-${applyId}`] = false;
+  }
+}
+
 onMounted(async () => {
   try {
     const results = await Promise.allSettled([
@@ -158,6 +323,7 @@ onMounted(async () => {
       getStatByCategoryApi(),
       getWorkerIncomeRankApi(10),
       getFeeConfigApi(),
+      getWorkerApplyListApi(workerApplyStatusFilter.value),
     ]);
 
     if (results[0].status === 'fulfilled' && results[0].value) summary.value = results[0].value;
@@ -168,9 +334,37 @@ onMounted(async () => {
       feeForm.value.platformFeeRate = Number(results[4].value.platformFeeRate) || 0.06;
       feeForm.value.escrowFeeRate = Number(results[4].value.escrowFeeRate) || 0.005;
     }
+    if (results[5].status === 'fulfilled') workerApplyList.value = results[5].value || [];
   } catch { /* 静默 */ }
   finally { loading.value = false; }
 });
+
+watch(activeTab, (tab) => {
+  const currentQueryTab = String(route.query.tab || '');
+  const targetQueryTab = tab === 'country' ? '' : tab;
+  if (currentQueryTab !== targetQueryTab) {
+    const nextQuery = { ...route.query };
+    if (targetQueryTab) {
+      nextQuery.tab = targetQueryTab;
+    } else {
+      delete nextQuery.tab;
+    }
+    router.replace({ path: route.path, query: nextQuery });
+  }
+  if (tab === 'workerApply') {
+    loadWorkerApplyList();
+  }
+});
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    const normalized = normalizeTab(tab);
+    if (activeTab.value !== normalized) {
+      activeTab.value = normalized;
+    }
+  },
+);
 </script>
 
 <style scoped>
@@ -233,6 +427,15 @@ onMounted(async () => {
 }
 .tab-loading {
   padding: 20px 0;
+}
+
+.apply-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 /* 排行徽章 */

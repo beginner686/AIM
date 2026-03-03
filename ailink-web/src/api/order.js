@@ -19,6 +19,7 @@ export async function createOrderApi(params) {
   return request({
     url: '/order',
     method: 'post',
+    silentBusinessError: true,
     data: {
       demandId: payload.demandId,
       workerProfileId: payload.workerProfileId,
@@ -57,10 +58,34 @@ export function startWorkApi(orderId) {
   });
 }
 
+export function acceptOrderApi(orderId, remark = '') {
+  return request({
+    url: `/order/${orderId}/accept`,
+    method: 'post',
+    data: { remark },
+  });
+}
+
+export function rejectOrderApi(orderId, remark = '') {
+  return request({
+    url: `/order/${orderId}/reject`,
+    method: 'post',
+    data: { remark },
+  });
+}
+
 export function completeOrderApi(orderId) {
   return request({
     url: `/order/${orderId}/complete`,
     method: 'post',
+  });
+}
+
+export function cancelOrderApi(orderId, remark = '') {
+  return request({
+    url: `/order/${orderId}/cancel`,
+    method: 'post',
+    data: { remark },
   });
 }
 

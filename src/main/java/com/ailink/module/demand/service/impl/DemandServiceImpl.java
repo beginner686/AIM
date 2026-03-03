@@ -72,6 +72,36 @@ public class DemandServiceImpl implements DemandService {
         return toVO(demand);
     }
 
+    @Override
+    public void cancelMyDemand(Long userId, Long demandId) {
+        Demand demand = demandMapper.selectById(demandId);
+        if (demand == null) {
+            throw new BizException(ErrorCode.NOT_FOUND);
+        }
+        if (!userId.equals(demand.getUserId())) {
+            throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only demand owner can cancel demand");
+        }
+        if ("CLOSED".equalsIgnoreCase(demand.getStatus())) {
+            return;
+        }
+        if (!"OPEN".equalsIgnoreCase(demand.getStatus())) {
+            String status = StringUtils.hasText(demand.getStatus()) ? demand.getStatus().toUpperCase() : "UNKNOWN";
+            String guidance = "demand cannot be canceled in current status: " + status;
+            if ("MATCHED".equals(status) || "IN_PROGRESS".equals(status)) {
+                guidance = "demand status is " + status + ", please cancel related orders first";
+            } else if ("DONE".equals(status)) {
+                guidance = "demand status is DONE, completed demand cannot be canceled";
+            }
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(),
+                    guidance);
+        }
+
+        Demand update = new Demand();
+        update.setId(demandId);
+        update.setStatus("CLOSED");
+        demandMapper.updateById(update);
+    }
+
     private DemandVO toVO(Demand demand) {
         DemandVO vo = new DemandVO();
         vo.setId(demand.getId());

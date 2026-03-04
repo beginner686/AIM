@@ -97,8 +97,8 @@ function logout() {
 .header-inner {
   max-width: 1320px;
   margin: 0 auto;
-  height: 60px;
-  padding: 0 28px;
+  height: 78px;
+  padding: 0 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -108,7 +108,7 @@ function logout() {
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   text-decoration: none;
   flex-shrink: 0;
 }
@@ -116,9 +116,9 @@ function logout() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
@@ -128,25 +128,26 @@ function logout() {
   object-fit: cover;
 }
 .brand-text {
-  font-size: 18px;
+  font-size: 34px;
   font-weight: 800;
   color: var(--color-text);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
+  line-height: 1;
 }
 
 /* 导航链接 */
 .nav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 .nav-link {
   position: relative;
-  padding: 6px 14px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 10px 18px;
+  font-size: 20px;
+  font-weight: 600;
   color: var(--color-text-secondary);
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   transition: color 0.2s, background 0.2s;
 }
 .nav-link:hover {
@@ -163,42 +164,42 @@ function logout() {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-shrink: 0;
 }
 .user-chip {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px 4px 4px;
-  border-radius: 24px;
+  gap: 10px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 26px;
   background: var(--color-bg);
 }
 .user-avatar {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, #0b4b6f, #0f766e);
   color: #ffffff;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .user-name {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 600;
   color: var(--color-text);
 }
 .logout-btn {
-  padding: 5px 14px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 9px 18px;
+  font-size: 18px;
+  font-weight: 600;
   color: var(--color-text-secondary);
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;

@@ -6,6 +6,7 @@ function normalizePayload(data) {
   const country = (data?.country || '').trim();
   const description = (data?.description || '').trim();
   const budget = Number(data?.budget || 0);
+  const preferredWorkerProfileId = Number(data?.preferredWorkerProfileId || 0);
 
   return {
     title,
@@ -14,6 +15,7 @@ function normalizePayload(data) {
     country,
     targetCountry: country,
     description: title ? `[${title}] ${description}` : description,
+    preferredWorkerProfileId: preferredWorkerProfileId > 0 ? preferredWorkerProfileId : undefined,
   };
 }
 

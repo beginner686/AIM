@@ -27,4 +27,6 @@ public class DemandCreateRequest {
 
     @NotBlank(message = "description is required")
     private String description;
+
+    private Long preferredWorkerProfileId;
 }

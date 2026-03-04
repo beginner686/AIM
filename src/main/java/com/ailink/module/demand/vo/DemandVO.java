@@ -10,6 +10,9 @@ public class DemandVO {
 
     private Long id;
     private Long userId;
+    private Long preferredWorkerProfileId;
+    private Long preferredWorkerUserId;
+    private String preferredWorkerNameSnapshot;
     private String targetCountry;
     private String category;
     private BigDecimal budget;

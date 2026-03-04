@@ -26,6 +26,9 @@ CREATE TABLE IF NOT EXISTS user_account (
 CREATE TABLE IF NOT EXISTS demand (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
+  preferred_worker_profile_id BIGINT,
+  preferred_worker_user_id BIGINT,
+  preferred_worker_name_snapshot VARCHAR(100),
   target_country VARCHAR(100) NOT NULL,
   category VARCHAR(100) NOT NULL,
   budget DECIMAL(12,2) NOT NULL,
@@ -37,6 +40,8 @@ CREATE TABLE IF NOT EXISTS demand (
   updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   deleted TINYINT NOT NULL DEFAULT 0,
   KEY idx_demand_user (user_id),
+  KEY idx_demand_pref_worker_profile (preferred_worker_profile_id),
+  KEY idx_demand_pref_worker_user (preferred_worker_user_id),
   KEY idx_demand_country (target_country),
   KEY idx_demand_category (category),
   KEY idx_demand_status (status)

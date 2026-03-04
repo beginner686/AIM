@@ -40,7 +40,14 @@
       show-icon
     />
     <el-alert
-      v-else-if="demandLoadError"
+      v-if="preferredWorkerAlertTitle"
+      :title="preferredWorkerAlertTitle"
+      type="success"
+      :closable="false"
+      show-icon
+    />
+    <el-alert
+      v-if="demandLoadError"
       :title="demandLoadError"
       type="error"
       :closable="false"
@@ -186,25 +193,31 @@
             </el-tag>
           </div>
 
-	          <div class="meta-row">
-	            <span>{{ t('workerPool.deals') }} {{ row.dealCount }}</span>
-	            <span>{{ t('workerPool.rating') }} {{ row.rating.toFixed(1) }}</span>
-	            <span>{{ t('workerPool.estimatedQuote') }} {{ formatMoney(getEstimatedAmount(row)) }}</span>
+		          <div class="meta-row">
+		            <span>{{ t('workerPool.deals') }} {{ row.dealCount }}</span>
+		            <span>{{ t('workerPool.rating') }} {{ row.rating.toFixed(1) }}</span>
+		            <span>{{ t('workerPool.estimatedQuote') }} {{ formatMoney(getEstimatedAmount(row)) }}</span>
+		          </div>
+	          <div v-if="isPreferredWorker(row)" class="preferred-tip">
+	            {{ t('workerPool.preferredWorkerTag') }}
 	          </div>
 
-          <div class="action-row">
-            <el-button
-              type="primary"
-              :disabled="!demandId || !isDemandOwner"
-              :loading="Boolean(createLoadingMap[row.workerId])"
-              @click="handleCreateOrder(row)"
-	            >
-	              {{ t('workerPool.createOrder') }}
+	          <div class="action-row">
+	            <el-button
+	              type="primary"
+	              :disabled="!demandId || !isDemandOwner || !canCreateOrderWithWorker(row)"
+	              :loading="Boolean(createLoadingMap[row.workerId || row.id])"
+	              @click="handleCreateOrder(row)"
+		            >
+		              {{ t('workerPool.createOrder') }}
+		            </el-button>
+	            <el-button @click="goPublishDemandWithWorker(row)">
+	              {{ t('workerPool.bindAndPublishDemand') }}
 	            </el-button>
 	          </div>
-        </article>
-      </div>
-    </el-card>
+	        </article>
+	      </div>
+	    </el-card>
   </div>
 </template>
 
@@ -320,6 +333,7 @@ const avgQuote = computed(() => {
 
 const currentUserId = computed(() => Number(userStore.userInfo?.id || 0));
 const demandOwnerId = computed(() => Number(demandInfo.value?.userId || 0));
+const preferredWorkerProfileId = computed(() => Number(demandInfo.value?.preferredWorkerProfileId || 0));
 const isDemandOwner = computed(() => {
   if (!demandId.value) return false;
   if (!demandOwnerId.value) return true;
@@ -332,6 +346,14 @@ const demandInfoAlertTitle = computed(() => {
     id: demandInfo.value.id,
     country: getCountryLabel(demandInfo.value.targetCountry) || demandInfo.value.targetCountry || '—',
     category: resolveDemandCategoryLabel(demandInfo.value.category) || '—',
+  });
+});
+const preferredWorkerAlertTitle = computed(() => {
+  if (!demandInfo.value || !preferredWorkerProfileId.value) return '';
+  const preferredName = String(demandInfo.value?.preferredWorkerNameSnapshot || '').trim();
+  return t('workerPool.alertPreferredWorkerBound', {
+    id: preferredWorkerProfileId.value,
+    name: preferredName || `#${preferredWorkerProfileId.value}`,
   });
 });
 
@@ -508,6 +530,20 @@ function getEstimatedAmount(worker) {
   return 100;
 }
 
+function getWorkerProfileId(worker) {
+  return Number(worker?.workerId || worker?.id || 0);
+}
+
+function isPreferredWorker(worker) {
+  if (!preferredWorkerProfileId.value) return false;
+  return getWorkerProfileId(worker) === preferredWorkerProfileId.value;
+}
+
+function canCreateOrderWithWorker(worker) {
+  if (!preferredWorkerProfileId.value) return true;
+  return isPreferredWorker(worker);
+}
+
 function getOrderAmount(worker) {
   const demandBudget = Number(demandInfo.value?.budget || 0);
   if (demandBudget > 0) {
@@ -532,6 +568,23 @@ function resetFilters() {
   loadWorkers();
 }
 
+function goPublishDemandWithWorker(worker) {
+  const workerProfileId = getWorkerProfileId(worker);
+  if (!workerProfileId) {
+    ElMessage.error(t('workerPool.invalidWorkerId'));
+    return;
+  }
+  router.push({
+    path: '/publish-demand',
+    query: {
+      preferredWorkerProfileId: String(workerProfileId),
+      preferredWorkerName: String(worker?.name || ''),
+      preferredWorkerCountry: String(worker?.country || ''),
+      preferredWorkerCategory: String(worker?.category || ''),
+    },
+  });
+}
+
 async function handleCreateOrder(worker) {
   if (!demandId.value) {
     ElMessage.warning(t('workerPool.createNeedDemandId'));
@@ -541,9 +594,13 @@ async function handleCreateOrder(worker) {
     ElMessage.warning(t('workerPool.createOnlyOwner'));
     return;
   }
-  const workerId = Number(worker?.workerId || worker?.id || 0);
+  const workerId = getWorkerProfileId(worker);
   if (!workerId) {
     ElMessage.error(t('workerPool.invalidWorkerId'));
+    return;
+  }
+  if (!canCreateOrderWithWorker(worker)) {
+    ElMessage.warning(t('workerPool.createOnlyPreferredWorker'));
     return;
   }
 
@@ -564,6 +621,10 @@ async function handleCreateOrder(worker) {
     const message = String(error?.message || '').trim();
     if (message.toLowerCase().includes('only demand owner can create order')) {
       ElMessage.error(t('workerPool.createOnlyOwner'));
+      return;
+    }
+    if (message.toLowerCase().includes('bound to a preferred worker')) {
+      ElMessage.error(t('workerPool.createOnlyPreferredWorker'));
       return;
     }
     ElMessage.error(message || t('workerPool.createFailed'));
@@ -807,6 +868,15 @@ onMounted(async () => {
 
 .action-row {
   margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preferred-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #0f766e;
 }
 
 @media (max-width: 1100px) {

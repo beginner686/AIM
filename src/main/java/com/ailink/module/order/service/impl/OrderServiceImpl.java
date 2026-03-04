@@ -80,6 +80,11 @@ public class OrderServiceImpl implements OrderService {
         if (workerProfile == null) {
             throw new BizException(ErrorCode.NOT_FOUND.getCode(), "worker profile not found");
         }
+        if (demand.getPreferredWorkerProfileId() != null
+                && !demand.getPreferredWorkerProfileId().equals(workerProfile.getId())) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(),
+                    "this demand is bound to a preferred worker, please create order with the bound worker");
+        }
         if (workerProfile.getVerified() == null || workerProfile.getVerified() != 1) {
             throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "worker is not verified");
         }

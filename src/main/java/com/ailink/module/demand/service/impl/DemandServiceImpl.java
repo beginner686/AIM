@@ -8,6 +8,10 @@ import com.ailink.module.demand.entity.Demand;
 import com.ailink.module.demand.mapper.DemandMapper;
 import com.ailink.module.demand.service.DemandService;
 import com.ailink.module.demand.vo.DemandVO;
+import com.ailink.module.user.entity.User;
+import com.ailink.module.user.mapper.UserMapper;
+import com.ailink.module.worker.entity.WorkerProfile;
+import com.ailink.module.worker.mapper.WorkerProfileMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -18,15 +22,37 @@ import java.util.List;
 public class DemandServiceImpl implements DemandService {
 
     private final DemandMapper demandMapper;
+    private final WorkerProfileMapper workerProfileMapper;
+    private final UserMapper userMapper;
 
-    public DemandServiceImpl(DemandMapper demandMapper) {
+    public DemandServiceImpl(DemandMapper demandMapper,
+                             WorkerProfileMapper workerProfileMapper,
+                             UserMapper userMapper) {
         this.demandMapper = demandMapper;
+        this.workerProfileMapper = workerProfileMapper;
+        this.userMapper = userMapper;
     }
 
     @Override
     public Long createDemand(Long userId, DemandCreateRequest request) {
         Demand demand = new Demand();
         demand.setUserId(userId);
+        if (request.getPreferredWorkerProfileId() != null) {
+            Long profileId = request.getPreferredWorkerProfileId();
+            if (profileId <= 0) {
+                throw new BizException(ErrorCode.PARAM_ERROR.getCode(), "preferredWorkerProfileId is invalid");
+            }
+            WorkerProfile workerProfile = workerProfileMapper.selectById(profileId);
+            if (workerProfile == null) {
+                throw new BizException(ErrorCode.NOT_FOUND.getCode(), "preferred worker profile not found");
+            }
+            if (workerProfile.getVerified() == null || workerProfile.getVerified() != 1) {
+                throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "preferred worker is not verified");
+            }
+            demand.setPreferredWorkerProfileId(workerProfile.getId());
+            demand.setPreferredWorkerUserId(workerProfile.getUserId());
+            demand.setPreferredWorkerNameSnapshot(resolvePreferredWorkerNameSnapshot(workerProfile));
+        }
         demand.setTargetCountry(request.getTargetCountry());
         demand.setCategory(request.getCategory());
         demand.setBudget(request.getBudget());
@@ -106,6 +132,9 @@ public class DemandServiceImpl implements DemandService {
         DemandVO vo = new DemandVO();
         vo.setId(demand.getId());
         vo.setUserId(demand.getUserId());
+        vo.setPreferredWorkerProfileId(demand.getPreferredWorkerProfileId());
+        vo.setPreferredWorkerUserId(demand.getPreferredWorkerUserId());
+        vo.setPreferredWorkerNameSnapshot(demand.getPreferredWorkerNameSnapshot());
         vo.setTargetCountry(demand.getTargetCountry());
         vo.setCategory(demand.getCategory());
         vo.setBudget(demand.getBudget());
@@ -115,5 +144,19 @@ public class DemandServiceImpl implements DemandService {
         vo.setStatus(demand.getStatus());
         vo.setCreatedTime(demand.getCreatedTime());
         return vo;
+    }
+
+    private String resolvePreferredWorkerNameSnapshot(WorkerProfile workerProfile) {
+        if (workerProfile == null) {
+            return null;
+        }
+        User workerUser = userMapper.selectById(workerProfile.getUserId());
+        if (workerUser != null && StringUtils.hasText(workerUser.getUsername())) {
+            return workerUser.getUsername().trim();
+        }
+        if (StringUtils.hasText(workerProfile.getRealName())) {
+            return workerProfile.getRealName().trim();
+        }
+        return null;
     }
 }

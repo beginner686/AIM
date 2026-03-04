@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "skills": {
+    "accelint-ts-best-practices": {
+      "source": "gohypergiant/agent-skills",
+      "sourceType": "github",
+      "computedHash": "1aaf9cc0e14f81f3ceb326b1e042c4341192e2c27425baea22d00c300ce0b871"
+    },
+    "baoyu-danger-gemini-web": {
+      "source": "JimLiu/baoyu-skills",
+      "sourceType": "github",
+      "computedHash": "f364a65c4b42c5721f877dbbe7dd95119c615fb8883355bcd3885c44cdd4da5d"
+    },
+    "baoyu-image-gen": {
+      "source": "JimLiu/baoyu-skills",
+      "sourceType": "github",
+      "computedHash": "295a4f3e4595a8ae67037226c16b928c891f8ae79c7065b4d984b000298a9d93"
+    },
+    "brainstorming": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "computedHash": "5cafa1558b0b6bd4d4c71f23d5567b7fcbbcdb4b0a50b0c5f69a80a3cebaf9b8"
+    },
+    "clickhouse-io": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "computedHash": "1889d9e98b577799c31ed44f6f0ff2549dc96b85bbe790dc02b37e1c8315bbf0"
+    },
+    "coding-standards": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "254edb14fa6ef91b07a12a0e27300a31197380de9723b646fc9fafa2ee068553"
+    },
+    "defuddle": {
+      "source": "kepano/obsidian-skills",
+      "sourceType": "github",
+      "computedHash": "eefad29dff723822d076f9cc37d8873aed741bd02d182601af44938e4ec0889e"
+    },
+    "nodejs-backend-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "7f1bf288467c197bde7cb8e4beb9d3568d61ef0d0d3d702b58394ea656757185"
+    },
+    "owasp-security-check": {
+      "source": "sergiodxa/agent-skills",
+      "sourceType": "github",
+      "computedHash": "94875bfeb111a97687dc4f90b71c23de959ce36bfa9cab65c007116218f7413e"
+    },
+    "pi-planning-with-files": {
+      "source": "OthmanAdi/planning-with-files",
+      "sourceType": "github",
+      "computedHash": "987948a8852d224e9ee607804a1101869de93fde1747bdb59e8e821188bb4420"
+    },
+    "react-patterns": {
+      "source": "oakoss/agent-skills",
+      "sourceType": "github",
+      "computedHash": "5d8349660092559aa74bbae00d2f1606bad5ade91841c8bf4546928fc884181e"
+    },
+    "skill-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "e513e29a52533c4dd0aff72964c80d2d43c6fe9619ecb8766aabcd117e2b1acd"
+    },
+    "tdd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "computedHash": "e4453d2f51a009f6b49876cc4d46ce452194c54ea931d4a552a0eb0e9dd24c27"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "computedHash": "4cfe5e95a230616c17d92b44e3cd37bae543ce087a7756a446a62f77d7c58a37"
+    },
+    "vercel-composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "10eb4ec94577b79ae98c63ce3e7f35f8a6a06436a4011bff083b397de6960eeb"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "3ff06f0712886f7c2660d6746856c22d3127bd6568ddde29ddad8b72dbaaa226"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "d8e7d3afe37dcc8a97b99ffb5afdb4d0919ae0092ea8b68f44eb201f035e33ac"
+    }
+  }
+}

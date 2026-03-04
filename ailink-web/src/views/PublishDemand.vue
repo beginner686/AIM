@@ -1,19 +1,36 @@
 <template>
   <div class="publish-page">
-    <section class="hero-strip">
-      <div>
-        <p class="kicker">{{ t('publishDemand.kicker') }}</p>
-        <h1>{{ t('publishDemand.title') }}</h1>
-        <p class="sub">{{ t('publishDemand.subtitle') }}</p>
-      </div>
+	    <section class="hero-strip">
+	      <div>
+	        <p class="kicker">{{ t('publishDemand.kicker') }}</p>
+	        <h1>{{ t('publishDemand.title') }}</h1>
+	        <p class="sub">{{ t('publishDemand.subtitle') }}</p>
+	      </div>
       <div class="hero-badges">
         <span class="badge">{{ t('publishDemand.badgeEscrow') }}</span>
         <span class="badge">{{ t('publishDemand.badgeRisk') }}</span>
         <span class="badge">{{ t('publishDemand.badgeCrossBorder') }}</span>
-      </div>
-    </section>
+	      </div>
+	    </section>
+	    <el-alert
+	      v-if="hasPreferredWorker"
+	      class="preferred-worker-alert"
+	      type="success"
+	      :closable="false"
+	      show-icon
+	    >
+	      <template #title>
+	        {{ t('publishDemand.preferredWorkerTitle', { name: preferredWorkerDisplayName }) }}
+	      </template>
+	      <div class="preferred-worker-body">
+	        <span>{{ t('publishDemand.preferredWorkerHint', { id: preferredWorkerProfileId }) }}</span>
+	        <span v-if="preferredWorkerCountry">{{ t('publishDemand.preferredWorkerCountry', { country: preferredWorkerCountry }) }}</span>
+	        <span v-if="preferredWorkerCategory">{{ t('publishDemand.preferredWorkerCategory', { category: preferredWorkerCategory }) }}</span>
+	        <el-button link type="primary" @click="clearPreferredWorker">{{ t('publishDemand.clearPreferredWorker') }}</el-button>
+	      </div>
+	    </el-alert>
 
-    <section class="content-grid">
+	    <section class="content-grid">
       <el-card class="form-card" shadow="never">
         <template #header>
           <div class="section-head">
@@ -175,9 +192,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { createDemandApi } from '@/api/demand';
 import { getCountryDictApi } from '@/api/dict';
@@ -185,9 +202,14 @@ import { CATEGORY_OPTIONS, CATEGORY_PRESETS } from '@/dicts';
 import { formatMoney } from '@/utils/format';
 
 const router = useRouter();
+const route = useRoute();
 const { t, locale } = useI18n();
 const formRef = ref(null);
 const submitLoading = ref(false);
+const preferredWorkerProfileId = ref(0);
+const preferredWorkerName = ref('');
+const preferredWorkerCountry = ref('');
+const preferredWorkerCategory = ref('');
 
 const formData = reactive({
   title: '',
@@ -329,6 +351,12 @@ const budgetAmount = computed(() => Number(formData.budget || 0));
 const platformFeeAmount = computed(() => round2(budgetAmount.value * 0.06));
 const escrowFeeAmount = computed(() => round2(budgetAmount.value * 0.005));
 const workerIncomeAmount = computed(() => round2(Math.max(0, budgetAmount.value - platformFeeAmount.value - escrowFeeAmount.value)));
+const hasPreferredWorker = computed(() => preferredWorkerProfileId.value > 0);
+const preferredWorkerDisplayName = computed(() => {
+  const name = String(preferredWorkerName.value || '').trim();
+  if (name) return name;
+  return `#${preferredWorkerProfileId.value}`;
+});
 
 function round2(value) {
   return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
@@ -513,6 +541,7 @@ async function handleSubmit() {
         : String(formData.category || '').trim(),
       // Submit dict_code country value (e.g. SG/US)
       country: String(formData.country || '').trim().toUpperCase(),
+      preferredWorkerProfileId: preferredWorkerProfileId.value > 0 ? preferredWorkerProfileId.value : undefined,
     };
     const data = await createDemandApi(payload);
     const demandId = data?.demandId || data?.id || data || '';
@@ -532,7 +561,43 @@ function resetForm() {
   latestCategoryKeyword.value = '';
 }
 
+function syncPreferredWorkerFromRoute() {
+  const nextProfileId = Number(route.query?.preferredWorkerProfileId || 0);
+  preferredWorkerProfileId.value = Number.isFinite(nextProfileId) && nextProfileId > 0 ? nextProfileId : 0;
+  preferredWorkerName.value = String(route.query?.preferredWorkerName || '').trim();
+  preferredWorkerCountry.value = String(route.query?.preferredWorkerCountry || '').trim().toUpperCase();
+  preferredWorkerCategory.value = String(route.query?.preferredWorkerCategory || '').trim();
+  if (!formData.country && /^[A-Z]{2}$/.test(preferredWorkerCountry.value)) {
+    formData.country = preferredWorkerCountry.value;
+  }
+}
+
+function clearPreferredWorker() {
+  preferredWorkerProfileId.value = 0;
+  preferredWorkerName.value = '';
+  preferredWorkerCountry.value = '';
+  preferredWorkerCategory.value = '';
+  const nextQuery = { ...route.query };
+  delete nextQuery.preferredWorkerProfileId;
+  delete nextQuery.preferredWorkerName;
+  delete nextQuery.preferredWorkerCountry;
+  delete nextQuery.preferredWorkerCategory;
+  router.replace({
+    path: route.path,
+    query: nextQuery,
+  });
+}
+
+watch(
+  () => route.query,
+  () => {
+    syncPreferredWorkerFromRoute();
+  },
+  { deep: true },
+);
+
 onMounted(() => {
+  syncPreferredWorkerFromRoute();
   loadCountryOptions();
 });
 </script>
@@ -584,6 +649,19 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.preferred-worker-alert {
+  border-radius: 12px;
+}
+
+.preferred-worker-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  margin-top: 4px;
+  align-items: center;
 }
 
 .badge {

@@ -20,7 +20,7 @@ function normalizeWorkers(list) {
     id: item?.id,
     workerId: item?.id,
     userId: item?.userId,
-    name: item?.realName || item?.username || `执行者#${item?.id || '-'}`,
+    name: item?.realName || item?.username || `Worker#${item?.id || '-'}`,
     country: item?.country || '',
     category: item?.category || item?.skillTags || '',
     dealCount: Number(item?.dealCount || item?.orderCount || 0),

@@ -27,6 +27,9 @@ CREATE TABLE user_account (
 CREATE TABLE demand (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
+  preferred_worker_profile_id BIGINT,
+  preferred_worker_user_id BIGINT,
+  preferred_worker_name_snapshot VARCHAR(100),
   target_country VARCHAR(100) NOT NULL,
   category VARCHAR(100) NOT NULL,
   budget DECIMAL(12,2) NOT NULL,

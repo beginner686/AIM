@@ -1,20 +1,25 @@
 <template>
   <div class="worker-page">
-    <section class="hero">
-      <div class="hero-left">
+    <section class="hero-strip reveal-up">
+      <div class="orb orb-a" />
+      <div class="orb orb-b" />
+      
+      <div class="hero-left hero-content">
         <p class="kicker">{{ t('workerPool.kicker') }}</p>
-        <h1>{{ t('workerPool.title') }}</h1>
+        <h1>
+          <span class="gradient-text">{{ t('workerPool.title') }}</span>
+        </h1>
         <p class="sub">{{ t('workerPool.subtitle') }}</p>
-        <div class="hero-tags">
+        <div class="hero-tags reveal-up delay-1">
           <span class="chip">{{ t('workerPool.onlineResources') }} {{ workers.length }}</span>
           <span class="chip">{{ t('workerPool.avgRating') }} {{ avgRating.toFixed(1) }}</span>
           <span class="chip">{{ t('workerPool.demandId') }} {{ demandId || t('workerPool.notProvided') }}</span>
         </div>
       </div>
 
-      <div class="hero-right">
-        <el-button type="primary" @click="$router.push('/publish-demand')">{{ t('workerPool.publishNewDemand') }}</el-button>
-        <el-button @click="resetFilters">{{ t('workerPool.clearFilters') }}</el-button>
+      <div class="hero-right hero-content reveal-up delay-1">
+        <el-button class="hero-btn-primary" @click="$router.push('/publish-demand')">{{ t('workerPool.publishNewDemand') }}</el-button>
+        <el-button class="hero-btn-ghost" @click="resetFilters">{{ t('workerPool.clearFilters') }}</el-button>
       </div>
     </section>
 
@@ -61,7 +66,7 @@
       show-icon
     />
 
-    <el-card class="filter-card" shadow="never">
+    <el-card class="filter-card reveal-up delay-1" shadow="never">
       <template #header>
         <div class="section-head">
           <h2>{{ t('workerPool.filterTitle') }}</h2>
@@ -143,7 +148,7 @@
       </el-form>
     </el-card>
 
-    <section class="metric-grid">
+    <section class="metric-grid reveal-up delay-1">
       <article class="metric">
         <p class="label">{{ t('workerPool.metricResults') }}</p>
         <p class="value">{{ workers.length }}</p>
@@ -158,7 +163,7 @@
       </article>
     </section>
 
-    <el-card class="list-card" shadow="never">
+    <el-card class="list-card reveal-up delay-1" shadow="never">
       <template #header>
         <div class="section-head">
           <h2>{{ t('workerPool.listTitle') }}</h2>
@@ -172,7 +177,7 @@
       <el-empty v-else-if="workers.length === 0" :description="t('workerPool.empty')" :image-size="88" />
 
       <div v-else class="worker-grid">
-        <article v-for="row in workers" :key="row.workerId || row.id" class="worker-card">
+        <article v-for="row in workers" :key="row.workerId || row.id" class="worker-card reveal-up">
           <div class="worker-top">
             <div>
               <h3>{{ row.name }}</h3>
@@ -211,7 +216,7 @@
 		            >
 		              {{ t('workerPool.createOrder') }}
 		            </el-button>
-	            <el-button @click="goPublishDemandWithWorker(row)">
+	            <el-button class="list-btn" @click="goPublishDemandWithWorker(row)">
 	              {{ t('workerPool.bindAndPublishDemand') }}
 	            </el-button>
 	          </div>
@@ -641,46 +646,94 @@ onMounted(async () => {
 
 <style scoped>
 .worker-page {
+  --surface: rgba(255, 255, 255, 0.76);
+  --border-light: rgba(216, 228, 246, 0.85);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
+  padding-bottom: 24px;
 }
 
-.hero {
-  border-radius: 16px;
-  padding: 18px 20px;
+.hero-strip {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 28px 30px;
   background:
-    radial-gradient(circle at 82% 0%, rgba(76, 166, 212, 0.18), transparent 32%),
-    linear-gradient(120deg, #0a3754 0%, #0f5a66 55%, #0b6a5a 100%);
-  color: #e7f4ff;
+    radial-gradient(circle at 18% -6%, rgba(68, 125, 255, 0.58), transparent 45%),
+    radial-gradient(circle at 88% 10%, rgba(61, 225, 226, 0.4), transparent 40%),
+    linear-gradient(135deg, #08132f 0%, #0f2451 46%, #11386e 100%);
+  color: #f6f9ff;
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
   flex-wrap: wrap;
+  box-shadow: 0 16px 32px rgba(9, 23, 56, 0.12);
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.orb-a {
+  width: 200px;
+  height: 200px;
+  left: -40px;
+  top: -40px;
+  background: rgba(86, 140, 255, 0.45);
+  animation: floatY 6s ease-in-out infinite;
+}
+
+.orb-b {
+  width: 160px;
+  height: 160px;
+  right: 18%;
+  top: 10%;
+  background: rgba(65, 234, 203, 0.3);
+  animation: floatY 8s ease-in-out infinite reverse;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
 }
 
 .kicker {
-  margin: 0 0 5px;
-  font-size: 11px;
+  margin: 0 0 10px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #9dd3ef;
+  letter-spacing: 0.14em;
+  color: #cad5f3;
 }
 
-.hero h1 {
+.hero-strip h1 {
   margin: 0;
-  font-size: 30px;
-  line-height: 1.2;
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.gradient-text {
+  background: linear-gradient(92deg, #36c9f7, #73f2ba);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .sub {
-  margin: 8px 0 0;
-  color: #c3dcec;
-  font-size: 14px;
+  margin: 10px 0 0;
+  color: rgba(229, 238, 255, 0.9);
+  font-size: 14.5px;
+  line-height: 1.6;
 }
 
 .hero-tags {
-  margin-top: 12px;
+  margin-top: 14px;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -696,14 +749,51 @@ onMounted(async () => {
 
 .hero-right {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
+  gap: 12px;
+  align-items: center;
+}
+
+.hero-btn-primary {
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 600;
+  border: none;
+  color: #052241;
+  background: linear-gradient(120deg, #75e9ff, #8fffb7);
+  box-shadow: 0 12px 24px rgba(31, 227, 208, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(31, 227, 208, 0.35);
+  background: linear-gradient(120deg, #8cf0ff, #a6ffc6);
+}
+
+.hero-btn-ghost {
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 600;
+  color: #ecf6ff;
+  border: 1px solid rgba(212, 230, 255, 0.45);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.hero-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  transform: translateY(-2px);
 }
 
 .filter-card,
 .list-card {
-  border-radius: 14px;
-  border: 1px solid #dbe7f1;
+  border-radius: 18px;
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 36px rgba(27, 49, 90, 0.04);
 }
 
 .section-head {
@@ -714,13 +804,15 @@ onMounted(async () => {
 
 .section-head h2 {
   margin: 0;
-  font-size: 18px;
-  color: #0f2c42;
+  font-size: 19px;
+  font-weight: 700;
+  color: #102449;
+  letter-spacing: -0.01em;
 }
 
 .count {
-  color: #6d8698;
-  font-size: 13px;
+  color: #65819e;
+  font-size: 13.5px;
 }
 
 .filter-form {
@@ -730,14 +822,47 @@ onMounted(async () => {
 .filter-grid {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
-  gap: 12px;
+  gap: 16px;
   align-items: end;
 }
 
 .filter-actions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   padding-bottom: 2px;
+}
+
+.filter-actions :deep(.el-button) {
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-weight: 600;
+}
+
+.filter-actions :deep(.el-button--primary) {
+  background: linear-gradient(120deg, #1f4f99, #183e7a);
+  border: none;
+  box-shadow: 0 8px 16px rgba(31, 79, 153, 0.2);
+}
+
+/* 深度定制表单输入框样式 */
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper) {
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(216, 228, 246, 0.9) inset;
+  background: #fdfeff;
+  transition: all 0.25s ease;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px #a4c5f4 inset;
+  background: #fff;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 2px #5a9cf8 inset !important;
+  background: #fff;
 }
 
 .quick-tags {
@@ -788,28 +913,39 @@ onMounted(async () => {
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .metric {
-  border: 1px solid #dbe7f1;
-  border-radius: 12px;
-  padding: 12px 14px;
-  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 24px rgba(27, 49, 90, 0.03);
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+
+.metric:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(27, 49, 90, 0.05);
 }
 
 .metric .label {
   margin: 0;
   color: #6a8396;
   font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .metric .value {
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   color: #102c42;
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 800;
   line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .loading-wrap {
@@ -821,14 +957,22 @@ onMounted(async () => {
 .worker-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .worker-card {
-  border: 1px solid #d9e7f2;
-  border-radius: 12px;
-  padding: 12px;
-  background: #fbfdff;
+  border: 1px solid rgba(216, 228, 246, 0.85);
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #fdfdff;
+  box-shadow: 0 12px 24px rgba(31, 57, 107, 0.03);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.worker-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 36px rgba(31, 57, 107, 0.08);
+  border-color: #bad2f9;
 }
 
 .worker-top {
@@ -874,9 +1018,41 @@ onMounted(async () => {
 }
 
 .preferred-tip {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #0f766e;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: #0d9488;
+  font-weight: 500;
+}
+
+.list-btn {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 8px 18px;
+}
+
+:deep(.el-button--primary) {
+  border-radius: 999px;
+  background: linear-gradient(120deg, #1f4f99, #183e7a);
+  border: none;
+  box-shadow: 0 4px 10px rgba(31, 79, 153, 0.2);
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  animation: fadeInUp 0.55s ease both;
+}
+
+.delay-1 {
+  animation-delay: 0.1s;
 }
 
 @media (max-width: 1100px) {
@@ -896,7 +1072,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 720px) {
-  .hero h1 {
+  .hero-strip h1 {
     font-size: 24px;
   }
 

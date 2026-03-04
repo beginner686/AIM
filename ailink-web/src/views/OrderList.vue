@@ -1,18 +1,23 @@
 <template>
   <div class="order-list-page">
-    <section class="hero">
-      <div class="hero-copy">
+    <section class="hero-strip reveal-up">
+      <div class="orb orb-a" />
+      <div class="orb orb-b" />
+
+      <div class="hero-copy hero-content">
         <p class="hero-kicker">{{ t('orderList.kicker') }}</p>
-        <h1>{{ t('orderList.title') }}</h1>
+        <h1>
+          <span class="gradient-text">{{ t('orderList.title') }}</span>
+        </h1>
         <p>{{ t('orderList.subtitle') }}</p>
       </div>
-      <div class="hero-actions">
-        <el-button @click="router.push('/worker-pool')">{{ t('orderList.createOrder') }}</el-button>
-        <el-button type="primary" :icon="Refresh" @click="loadOrders">{{ t('orderList.refreshOrders') }}</el-button>
+      <div class="hero-actions hero-content reveal-up delay-1">
+        <el-button class="hero-btn-primary" @click="router.push('/worker-pool')">{{ t('orderList.createOrder') }}</el-button>
+        <el-button class="hero-btn-ghost" :icon="Refresh" @click="loadOrders">{{ t('orderList.refreshOrders') }}</el-button>
       </div>
     </section>
 
-    <section class="kpi-grid">
+    <section class="kpi-grid reveal-up delay-1">
       <article class="kpi-card">
         <p class="kpi-label">{{ t('orderList.kpiTotalOrders') }}</p>
         <p class="kpi-value">{{ orders.length }}</p>
@@ -31,7 +36,7 @@
       </article>
     </section>
 
-    <section class="filter-panel">
+    <section class="filter-panel reveal-up delay-1">
       <div class="filter-row">
         <el-input
           v-model.trim="keyword"
@@ -64,16 +69,17 @@
       </p>
     </section>
 
-    <section class="list-panel">
+    <section class="list-panel reveal-up delay-1">
       <div v-if="loading" class="panel-loading">
         <el-skeleton :rows="6" animated />
       </div>
       <el-empty v-else-if="filteredOrders.length === 0" :description="t('orderList.empty')" :image-size="96" />
       <div v-else class="order-list">
         <article
-          v-for="order in filteredOrders"
+          v-for="(order, index) in filteredOrders"
           :key="order.id"
-          class="order-card"
+          class="order-card reveal-up"
+          :style="{ animationDelay: `${index * 0.05}s` }"
           @click="router.push(`/order/${order.id}`)"
         >
             <div class="card-head">
@@ -255,130 +261,253 @@ onMounted(loadOrders);
 
 <style scoped>
 .order-list-page {
+  --surface: rgba(255, 255, 255, 0.76);
+  --border-light: rgba(216, 228, 246, 0.85);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
+  padding-bottom: 24px;
 }
 
-.hero {
-  border-radius: var(--radius-xl);
-  padding: 26px 28px;
+.hero-strip {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 28px 30px;
   background:
-    radial-gradient(circle at 10% 18%, rgba(56, 189, 248, 0.2), transparent 35%),
-    linear-gradient(120deg, #06243d 0%, #0a3657 48%, #0d4f66 100%);
-  color: #e5edf5;
+    radial-gradient(circle at 18% -6%, rgba(68, 125, 255, 0.58), transparent 45%),
+    radial-gradient(circle at 88% 10%, rgba(61, 225, 226, 0.4), transparent 40%),
+    linear-gradient(135deg, #08132f 0%, #0f2451 46%, #11386e 100%);
+  color: #f6f9ff;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 16px 32px rgba(9, 23, 56, 0.12);
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.orb-a {
+  width: 200px;
+  height: 200px;
+  left: -40px;
+  top: -40px;
+  background: rgba(86, 140, 255, 0.45);
+  animation: floatY 6s ease-in-out infinite;
+}
+
+.orb-b {
+  width: 160px;
+  height: 160px;
+  right: 18%;
+  top: 10%;
+  background: rgba(65, 234, 203, 0.3);
+  animation: floatY 8s ease-in-out infinite reverse;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-kicker {
-  margin: 0 0 6px;
+  margin: 0 0 10px;
   font-size: 12px;
-  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(229, 237, 245, 0.75);
+  letter-spacing: 0.14em;
+  color: #cad5f3;
 }
 
-.hero h1 {
+.hero-strip h1 {
   margin: 0;
-  font-size: 32px;
-  line-height: 1.1;
-  color: #ffffff;
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
-.hero p {
-  margin: 8px 0 0;
-  font-size: 14px;
-  color: rgba(229, 237, 245, 0.88);
+.gradient-text {
+  background: linear-gradient(92deg, #36c9f7, #73f2ba);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-strip p {
+  margin: 10px 0 0;
+  color: rgba(229, 238, 255, 0.9);
+  font-size: 14.5px;
+  line-height: 1.6;
 }
 
 .hero-actions {
   display: flex;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 12px;
+  align-items: center;
+  align-self: center;
+}
+
+.hero-btn-primary {
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 600;
+  border: none;
+  color: #052241;
+  background: linear-gradient(120deg, #75e9ff, #8fffb7);
+  box-shadow: 0 12px 24px rgba(31, 227, 208, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(31, 227, 208, 0.35);
+  background: linear-gradient(120deg, #8cf0ff, #a6ffc6);
+}
+
+.hero-btn-ghost {
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 600;
+  color: #ecf6ff;
+  border: 1px solid rgba(212, 230, 255, 0.45);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.hero-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  transform: translateY(-2px);
 }
 
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .kpi-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
   padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 24px rgba(27, 49, 90, 0.03);
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(27, 49, 90, 0.05);
 }
 
 .kpi-label {
   margin: 0;
-  font-size: 13px;
-  color: var(--color-text-secondary);
+  color: #6a8396;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .kpi-value {
   margin: 6px 0 0;
+  color: #102c42;
   font-size: 28px;
-  line-height: 1.05;
-  font-weight: 700;
-  color: var(--color-text);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .filter-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
-  box-shadow: var(--shadow-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  padding: 16px 20px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 36px rgba(27, 49, 90, 0.04);
 }
 
 .filter-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .filter-hint {
-  margin: 8px 0 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
+  margin: 10px 0 0;
+  color: #65819e;
+  font-size: 13.5px;
 }
 
 .list-panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 36px rgba(27, 49, 90, 0.04);
+}
+
+/* 深度定制表单输入框样式 */
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper) {
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(216, 228, 246, 0.9) inset;
+  background: #fdfeff;
+  transition: all 0.25s ease;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px #a4c5f4 inset;
+  background: #fff;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 2px #5a9cf8 inset !important;
+  background: #fff;
+}
+
+.filter-row :deep(.el-button) {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 8px 18px;
 }
 
 .panel-loading {
-  padding: 20px;
+  padding: 24px;
 }
 
 .order-list {
-  padding: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .order-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  border: 1px solid rgba(216, 228, 246, 0.85);
+  border-radius: 16px;
+  padding: 18px 20px;
+  background: #fdfdff;
+  box-shadow: 0 12px 24px rgba(31, 57, 107, 0.03);
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .order-card:hover {
-  border-color: rgba(11, 75, 111, 0.28);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 36px rgba(31, 57, 107, 0.08);
+  border-color: #bad2f9;
 }
 
 .card-head {
@@ -390,14 +519,16 @@ onMounted(loadOrders);
 
 .head-main h3 {
   margin: 0;
-  font-size: 17px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #102449;
   line-height: 1.2;
 }
 
 .head-main p {
   margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--color-text-secondary);
+  font-size: 13.5px;
+  color: #65819e;
 }
 
 .head-tags {
@@ -406,10 +537,10 @@ onMounted(loadOrders);
 }
 
 .amount-grid {
-  margin-top: 12px;
-  padding: 12px 0;
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
+  margin-top: 14px;
+  padding: 14px 0;
+  border-top: 1px dashed rgba(200, 216, 238, 0.7);
+  border-bottom: 1px dashed rgba(200, 216, 238, 0.7);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
@@ -417,8 +548,8 @@ onMounted(loadOrders);
 
 .amount-grid span {
   display: block;
-  font-size: 12px;
-  color: var(--color-text-muted);
+  font-size: 13px;
+  color: #6a8396;
 }
 
 .amount-grid strong {
@@ -426,16 +557,34 @@ onMounted(loadOrders);
   margin-top: 4px;
   font-size: 20px;
   line-height: 1.2;
-  color: var(--color-text);
+  color: #102c42;
 }
 
 .card-foot {
-  margin-top: 10px;
+  margin-top: 12px;
   display: flex;
   justify-content: space-between;
   gap: 12px;
   font-size: 13px;
-  color: var(--color-text-secondary);
+  color: #65819e;
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  animation: fadeInUp 0.55s ease both;
+}
+
+.delay-1 {
+  animation-delay: 0.1s;
 }
 
 @media (max-width: 1100px) {
@@ -445,7 +594,7 @@ onMounted(loadOrders);
 }
 
 @media (max-width: 820px) {
-  .hero {
+  .hero-strip {
     flex-direction: column;
     align-items: flex-start;
   }

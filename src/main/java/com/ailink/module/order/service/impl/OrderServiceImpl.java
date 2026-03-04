@@ -80,6 +80,17 @@ public class OrderServiceImpl implements OrderService {
         if (workerProfile == null) {
             throw new BizException(ErrorCode.NOT_FOUND.getCode(), "worker profile not found");
         }
+        Order existingActiveOrder = orderMapper.selectOne(new LambdaQueryWrapper<Order>()
+                .eq(Order::getDemandId, request.getDemandId())
+                .eq(Order::getWorkerProfileId, workerProfile.getId())
+                .ne(Order::getStatus, OrderStatus.CLOSED.name())
+                .orderByDesc(Order::getCreatedTime)
+                .last("LIMIT 1"));
+        if (existingActiveOrder != null) {
+            log.info("reuse existing active order, demandId={}, workerProfileId={}, orderId={}",
+                    request.getDemandId(), workerProfile.getId(), existingActiveOrder.getId());
+            return existingActiveOrder.getId();
+        }
         if (demand.getPreferredWorkerProfileId() != null
                 && !demand.getPreferredWorkerProfileId().equals(workerProfile.getId())) {
             throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(),

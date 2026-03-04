@@ -1,14 +1,19 @@
 <template>
   <div class="apply-page">
-    <section class="hero">
-      <div>
+    <section class="hero-strip reveal-up">
+      <div class="orb orb-a" />
+      <div class="orb orb-b" />
+
+      <div class="hero-content">
         <p class="kicker">{{ t('demandApplications.kicker') }}</p>
-        <h1>{{ t('demandApplications.title') }}</h1>
+        <h1>
+          <span class="gradient-text">{{ t('demandApplications.title') }}</span>
+        </h1>
         <p class="sub">{{ t('demandApplications.subtitle') }}</p>
       </div>
     </section>
 
-    <el-card shadow="never">
+    <el-card class="list-card reveal-up delay-1" shadow="never">
       <template #header>
         <div class="section-head">
           <h2>{{ t('demandApplications.ownerSectionTitle') }}</h2>
@@ -82,7 +87,7 @@
       </el-table>
     </el-card>
 
-    <el-card shadow="never">
+    <el-card class="list-card reveal-up delay-1" shadow="never">
       <template #header>
         <div class="section-head">
           <h2>{{ t('demandApplications.mySectionTitle') }}</h2>
@@ -328,36 +333,98 @@ onMounted(async () => {
 
 <style scoped>
 .apply-page {
+  --surface: rgba(255, 255, 255, 0.76);
+  --border-light: rgba(216, 228, 246, 0.85);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
+  padding-bottom: 24px;
 }
 
-.hero {
-  border-radius: 16px;
-  padding: 18px 20px;
+.hero-strip {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 28px 30px;
   background:
-    radial-gradient(circle at 86% 0%, rgba(87, 171, 255, 0.22), transparent 34%),
-    linear-gradient(125deg, #0c3658 0%, #0f5c67 55%, #0f6c5d 100%);
-  color: #e7f4ff;
+    radial-gradient(circle at 18% -6%, rgba(68, 125, 255, 0.58), transparent 45%),
+    radial-gradient(circle at 88% 10%, rgba(61, 225, 226, 0.4), transparent 40%),
+    linear-gradient(135deg, #08132f 0%, #0f2451 46%, #11386e 100%);
+  color: #f6f9ff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 16px 32px rgba(9, 23, 56, 0.12);
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.orb-a {
+  width: 200px;
+  height: 200px;
+  left: -40px;
+  top: -40px;
+  background: rgba(86, 140, 255, 0.45);
+  animation: floatY 6s ease-in-out infinite;
+}
+
+.orb-b {
+  width: 160px;
+  height: 160px;
+  right: 18%;
+  top: 10%;
+  background: rgba(65, 234, 203, 0.3);
+  animation: floatY 8s ease-in-out infinite reverse;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
 }
 
 .kicker {
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  margin: 0 0 10px;
+  font-size: 12px;
   text-transform: uppercase;
-  color: #9dd6ff;
+  letter-spacing: 0.14em;
+  color: #cad5f3;
 }
 
-.hero h1 {
-  margin: 6px 0 0;
-  font-size: 30px;
+.hero-strip h1 {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.gradient-text {
+  background: linear-gradient(92deg, #36c9f7, #73f2ba);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .sub {
-  margin: 8px 0 0;
-  color: #c4deee;
+  margin: 10px 0 0;
+  color: rgba(229, 238, 255, 0.9);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.list-card {
+  border-radius: 18px;
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 36px rgba(27, 49, 90, 0.04);
 }
 
 .section-head {
@@ -368,19 +435,62 @@ onMounted(async () => {
 
 .section-head h2 {
   margin: 0;
-  font-size: 17px;
-  color: #10324f;
+  font-size: 19px;
+  font-weight: 700;
+  color: #102449;
+  letter-spacing: -0.01em;
 }
 
 .toolbar {
   display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 
 .toolbar-item {
   width: 300px;
   max-width: 100%;
+}
+
+:deep(.el-button--small) {
+  border-radius: 999px;
+  padding: 8px 16px;
+}
+
+/* 深度定制表单输入框样式 */
+:deep(.el-select__wrapper) {
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(216, 228, 246, 0.9) inset;
+  background: #fdfeff;
+  transition: all 0.25s ease;
+}
+
+:deep(.el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px #a4c5f4 inset;
+  background: #fff;
+}
+
+:deep(.el-select__wrapper.is-focused) {
+  box-shadow: 0 0 0 2px #5a9cf8 inset !important;
+  background: #fff;
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  animation: fadeInUp 0.55s ease both;
+}
+
+.delay-1 {
+  animation-delay: 0.1s;
 }
 </style>

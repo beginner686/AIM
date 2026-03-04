@@ -1,15 +1,19 @@
 <template>
   <div class="publish-page">
-	    <section class="hero-strip">
-	      <div>
+	    <section class="hero-strip reveal-up">
+        <div class="orb orb-a" />
+        <div class="orb orb-b" />
+        <div class="hero-content">
 	        <p class="kicker">{{ t('publishDemand.kicker') }}</p>
-	        <h1>{{ t('publishDemand.title') }}</h1>
+	        <h1>
+            <span class="gradient-text">{{ t('publishDemand.title') }}</span>
+          </h1>
 	        <p class="sub">{{ t('publishDemand.subtitle') }}</p>
 	      </div>
-      <div class="hero-badges">
-        <span class="badge">{{ t('publishDemand.badgeEscrow') }}</span>
-        <span class="badge">{{ t('publishDemand.badgeRisk') }}</span>
-        <span class="badge">{{ t('publishDemand.badgeCrossBorder') }}</span>
+        <div class="hero-badges reveal-up delay-1">
+          <span class="badge">{{ t('publishDemand.badgeEscrow') }}</span>
+          <span class="badge">{{ t('publishDemand.badgeRisk') }}</span>
+          <span class="badge">{{ t('publishDemand.badgeCrossBorder') }}</span>
 	      </div>
 	    </section>
 	    <el-alert
@@ -31,7 +35,7 @@
 	    </el-alert>
 
 	    <section class="content-grid">
-      <el-card class="form-card" shadow="never">
+      <el-card class="form-card reveal-up delay-1" shadow="never">
         <template #header>
           <div class="section-head">
             <h2>{{ t('publishDemand.sectionInfo') }}</h2>
@@ -148,7 +152,7 @@
       </el-card>
 
       <div class="right-stack">
-        <el-card class="side-card" shadow="never">
+        <el-card class="side-card reveal-up delay-1" shadow="never">
           <template #header>
             <div class="section-head">
               <h2>{{ t('publishDemand.splitTitle') }}</h2>
@@ -173,7 +177,7 @@
           </div>
         </el-card>
 
-        <el-card class="side-card" shadow="never">
+        <el-card class="side-card reveal-up delay-1" shadow="never">
           <template #header>
             <div class="section-head">
               <h2>{{ t('publishDemand.tipsTitle') }}</h2>
@@ -604,51 +608,100 @@ onMounted(() => {
 
 <style scoped>
 .publish-page {
+  --surface: rgba(255, 255, 255, 0.76);
+  --border-light: rgba(216, 228, 246, 0.85);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  padding-bottom: 24px;
 }
 
 .hero-strip {
-  border-radius: 16px;
-  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 28px 30px;
   background:
-    radial-gradient(circle at 20% 0%, rgba(67, 156, 211, 0.18), transparent 35%),
-    linear-gradient(120deg, #0a3a56 0%, #0f4f63 60%, #0f6b63 100%);
-  color: #e9f4ff;
+    radial-gradient(circle at 18% -6%, rgba(68, 125, 255, 0.58), transparent 45%),
+    radial-gradient(circle at 88% 10%, rgba(61, 225, 226, 0.4), transparent 40%),
+    linear-gradient(135deg, #08132f 0%, #0f2451 46%, #11386e 100%);
+  color: #f6f9ff;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
+  gap: 16px;
   flex-wrap: wrap;
+  box-shadow: 0 16px 32px rgba(9, 23, 56, 0.12);
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.orb-a {
+  width: 200px;
+  height: 200px;
+  left: -40px;
+  top: -40px;
+  background: rgba(86, 140, 255, 0.45);
+  animation: floatY 6s ease-in-out infinite;
+}
+
+.orb-b {
+  width: 160px;
+  height: 160px;
+  right: 18%;
+  top: 10%;
+  background: rgba(65, 234, 203, 0.3);
+  animation: floatY 8s ease-in-out infinite reverse;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
 }
 
 .kicker {
-  margin: 0 0 6px;
-  font-size: 11px;
+  margin: 0 0 10px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #9dd6ff;
+  letter-spacing: 0.14em;
+  color: #cad5f3;
 }
 
 .hero-strip h1 {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.2;
-  color: #f7fcff;
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.gradient-text {
+  background: linear-gradient(92deg, #36c9f7, #73f2ba);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .sub {
-  margin: 8px 0 0;
-  color: #c5deef;
-  font-size: 14px;
-  max-width: 760px;
+  margin: 10px 0 0;
+  color: rgba(229, 238, 255, 0.9);
+  font-size: 14.5px;
+  line-height: 1.6;
+  max-width: 600px;
 }
 
 .hero-badges {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-self: center;
 }
 
 .preferred-worker-alert {
@@ -674,14 +727,17 @@ onMounted(() => {
 
 .content-grid {
   display: grid;
-  grid-template-columns: 1.7fr 1fr;
-  gap: 16px;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 24px;
 }
 
 .form-card,
 .side-card {
-  border-radius: 14px;
-  border: 1px solid #dbe7f1;
+  border-radius: 18px;
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 36px rgba(27, 49, 90, 0.04);
 }
 
 .section-head {
@@ -692,13 +748,15 @@ onMounted(() => {
 
 .section-head h2 {
   margin: 0;
-  font-size: 18px;
-  color: #0f2c42;
+  font-size: 19px;
+  font-weight: 700;
+  color: #102449;
+  letter-spacing: -0.01em;
 }
 
 .section-tip {
-  font-size: 12px;
-  color: #7a90a2;
+  font-size: 12.5px;
+  color: #65819e;
 }
 
 .two-col {
@@ -774,47 +832,129 @@ onMounted(() => {
 
 .action-row {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.action-row :deep(.el-button) {
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.action-row :deep(.el-button--primary) {
+  background: linear-gradient(120deg, #1f4f99, #183e7a);
+  border: none;
+  box-shadow: 0 8px 16px rgba(31, 79, 153, 0.2);
+}
+
+.action-row :deep(.el-button--primary:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px rgba(31, 79, 153, 0.3);
+}
+
+/* 深度定制表单输入框样式 */
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner) {
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(216, 228, 246, 0.9) inset;
+  background: #fdfeff;
+  transition: all 0.25s ease;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-textarea__inner:hover) {
+  box-shadow: 0 0 0 1px #a4c5f4 inset;
+  background: #fff;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 2px #5a9cf8 inset !important;
+  background: #fff;
 }
 
 .right-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .split-item {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  padding: 10px 0;
-  border-bottom: 1px dashed #e1ebf3;
-  color: #3d5a71;
-  font-size: 13px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px dashed rgba(200, 216, 238, 0.7);
+  color: #4b6a88;
+  font-size: 14px;
 }
 
 .split-item strong {
-  color: #102b40;
+  color: #0f2449;
   font-size: 16px;
+  font-weight: 600;
 }
 
 .split-item.highlight {
+  margin-top: 6px;
+  padding: 14px 16px;
   border-bottom: none;
+  background: linear-gradient(135deg, #f0fdf9, #e1fbf4);
+  border-radius: 12px;
+  border: 1px solid #c1f0de;
+  color: #115e59;
 }
 
 .split-item.highlight strong {
-  color: #0f766e;
+  color: #0d9488;
+  font-size: 22px;
+  font-weight: 800;
 }
 
 .tips {
   margin: 0;
-  padding-left: 18px;
-  color: #3c596f;
+  padding: 0;
+  color: #4b6a88;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 13px;
-  line-height: 1.65;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  list-style: none;
+}
+.tips li {
+  position: relative;
+  padding-left: 22px;
+}
+.tips li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/200.svg' viewBox='0 0 20 20' fill='%2314b8a6'%3E%3Cpath fill-rule='evenodd' d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z' clip-rule='evenodd' /%3E%3C/svg%3E") no-repeat center center;
+  background-size: contain;
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  animation: fadeInUp 0.55s ease both;
+}
+
+.delay-1 {
+  animation-delay: 0.12s;
 }
 
 @media (max-width: 1100px) {

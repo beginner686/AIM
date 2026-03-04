@@ -1,13 +1,18 @@
 <template>
   <div class="ucx-page">
-    <section class="ucx-hero">
-      <div class="ucx-hero-left">
+    <section class="ucx-hero reveal-up">
+      <div class="orb orb-a" />
+      <div class="orb orb-b" />
+
+      <div class="ucx-hero-left hero-content">
         <div class="ucx-avatar-wrap">
           <div class="ucx-avatar">{{ avatarLetter }}</div>
         </div>
         <div class="ucx-user-copy">
           <p class="ucx-kicker">{{ t('userCenter.kicker') }}</p>
-          <h1>{{ userInfo?.username || '—' }}</h1>
+          <h1>
+            <span class="gradient-text">{{ userInfo?.username || '—' }}</span>
+          </h1>
           <div class="ucx-meta">
             <span>{{ t('userCenter.email') }}{{ userInfo?.email || '—' }}</span>
             <span>{{ t('userCenter.location') }}{{ locationText }}</span>
@@ -17,16 +22,16 @@
         </div>
       </div>
 
-      <div class="ucx-hero-actions">
-        <el-button plain @click="showEditDialog = true">
+      <div class="ucx-hero-actions hero-content reveal-up delay-1">
+        <el-button class="hero-btn-ghost" @click="showEditDialog = true">
           <el-icon><Edit /></el-icon>
           {{ t('userCenter.editProfile') }}
         </el-button>
-        <el-button type="primary" @click="router.push('/orders')">{{ t('userCenter.viewMyOrders') }}</el-button>
+        <el-button class="hero-btn-primary" @click="router.push('/orders')">{{ t('userCenter.viewMyOrders') }}</el-button>
       </div>
     </section>
 
-    <section class="ucx-kpi-grid">
+    <section class="ucx-kpi-grid reveal-up delay-1">
       <article class="ucx-kpi-card">
         <p>{{ t('userCenter.kpiPublishedDemands') }}</p>
         <strong>{{ myDemands.length }}</strong>
@@ -45,7 +50,7 @@
       </article>
     </section>
 
-    <el-card v-if="!isWorker" shadow="never" class="ucx-demand-panel">
+    <el-card v-if="!isWorker" shadow="never" class="ucx-demand-panel reveal-up delay-1">
       <template #header>
         <div class="ucx-panel-header">
           <div>
@@ -122,7 +127,7 @@
       </div>
     </el-card>
 
-    <el-card shadow="never" class="ucx-demand-panel">
+    <el-card shadow="never" class="ucx-demand-panel reveal-up delay-1">
       <template #header>
         <div class="ucx-panel-header">
           <div>
@@ -151,9 +156,10 @@
       <el-empty v-else-if="filteredDemands.length === 0" :description="t('userCenter.emptyDemands')" :image-size="90" />
       <div v-else class="ucx-demand-grid">
         <article
-          v-for="item in filteredDemands"
+          v-for="(item, index) in filteredDemands"
           :key="item.id"
-          class="ucx-demand-card"
+          class="ucx-demand-card reveal-up"
+          :style="{ animationDelay: `${index * 0.05}s` }"
           @click="handleDemandCardClick(item)"
         >
           <div class="ucx-demand-top">
@@ -177,6 +183,7 @@
             >
               <span class="ucx-action-wrap">
                 <el-button
+                  class="action-btn"
                   size="small"
                   type="danger"
                   plain
@@ -192,7 +199,7 @@
       </div>
     </el-card>
 
-    <el-card v-if="isWorker" shadow="never" class="ucx-demand-panel">
+    <el-card v-if="isWorker" shadow="never" class="ucx-demand-panel reveal-up delay-1">
       <template #header>
         <div class="ucx-panel-header">
           <div>
@@ -612,22 +619,60 @@ onMounted(async () => {
 
 <style>
 .ucx-page {
+  --surface: rgba(255, 255, 255, 0.76);
+  --border-light: rgba(216, 228, 246, 0.85);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
+  padding-bottom: 24px;
 }
 
 .ucx-hero {
   position: relative;
   overflow: hidden;
-  border-radius: 18px;
-  padding: 22px 24px;
+  border-radius: 20px;
+  padding: 28px 30px;
   background:
-    radial-gradient(circle at 12% 12%, rgba(56, 189, 248, 0.22), transparent 34%),
-    radial-gradient(circle at 92% 82%, rgba(59, 130, 246, 0.22), transparent 38%),
-    linear-gradient(120deg, #06243d 0%, #0a3657 52%, #0d4f66 100%);
-  color: #eaf3fb;
-  box-shadow: 0 12px 30px rgba(2, 41, 83, 0.18);
+    radial-gradient(circle at 18% -6%, rgba(68, 125, 255, 0.58), transparent 45%),
+    radial-gradient(circle at 88% 10%, rgba(61, 225, 226, 0.4), transparent 40%),
+    linear-gradient(135deg, #08132f 0%, #0f2451 46%, #11386e 100%);
+  color: #f6f9ff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 16px 32px rgba(9, 23, 56, 0.12);
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.orb-a {
+  width: 200px;
+  height: 200px;
+  left: -40px;
+  top: -40px;
+  background: rgba(86, 140, 255, 0.45);
+  animation: floatY 6s ease-in-out infinite;
+}
+
+.orb-b {
+  width: 160px;
+  height: 160px;
+  right: 18%;
+  top: 10%;
+  background: rgba(65, 234, 203, 0.3);
+  animation: floatY 8s ease-in-out infinite reverse;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
 }
 
 .ucx-hero-left {
@@ -674,10 +719,17 @@ onMounted(async () => {
 
 .ucx-user-copy h1 {
   margin: 0;
-  font-size: 32px;
-  line-height: 1.05;
-  font-weight: 700;
-  color: #ffffff;
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.gradient-text {
+  background: linear-gradient(92deg, #36c9f7, #73f2ba);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .ucx-meta {
@@ -701,37 +753,85 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
+.hero-btn-primary {
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 600;
+  border: none;
+  color: #052241;
+  background: linear-gradient(120deg, #75e9ff, #8fffb7);
+  box-shadow: 0 12px 24px rgba(31, 227, 208, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(31, 227, 208, 0.35);
+  background: linear-gradient(120deg, #8cf0ff, #a6ffc6);
+}
+
+.hero-btn-ghost {
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 600;
+  color: #ecf6ff;
+  border: 1px solid rgba(212, 230, 255, 0.45);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.hero-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
 .ucx-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .ucx-kpi-card {
-  background: #ffffff;
-  border: 1px solid #dbe7f1;
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 24px rgba(27, 49, 90, 0.03);
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+
+.ucx-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(27, 49, 90, 0.05);
 }
 
 .ucx-kpi-card p {
   margin: 0;
-  font-size: 13px;
-  color: #64748b;
+  color: #6a8396;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .ucx-kpi-card strong {
-  margin-top: 8px;
+  margin-top: 6px;
   display: block;
   font-size: 28px;
-  line-height: 1.05;
-  color: #0f172a;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #102c42;
 }
 
 .ucx-demand-panel {
-  border-radius: 14px;
-  border-color: #dbe7f1;
+  border-radius: 18px;
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 36px rgba(27, 49, 90, 0.04);
 }
 
 .ucx-panel-header {
@@ -744,9 +844,10 @@ onMounted(async () => {
 
 .ucx-panel-header h2 {
   margin: 0;
-  font-size: 24px;
-  line-height: 1.15;
-  color: #0f172a;
+  font-size: 19px;
+  font-weight: 700;
+  color: #102449;
+  letter-spacing: -0.01em;
 }
 
 .ucx-panel-header p {
@@ -764,23 +865,23 @@ onMounted(async () => {
 .ucx-demand-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .ucx-demand-card {
-  border: 1px solid #dbe7f1;
-  border-radius: 12px;
-  padding: 14px;
+  border: 1px solid rgba(216, 228, 246, 0.85);
+  border-radius: 16px;
+  padding: 18px 20px;
+  background: #fdfdff;
+  box-shadow: 0 12px 24px rgba(31, 57, 107, 0.03);
   cursor: pointer;
-  background: #fbfdff;
-  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .ucx-demand-card:hover {
-  border-color: #7ca8cb;
-  background: #f3f9ff;
-  box-shadow: 0 10px 22px rgba(2, 55, 104, 0.1);
-  transform: translateY(-1px);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 36px rgba(31, 57, 107, 0.08);
+  border-color: #bad2f9;
 }
 
 .ucx-demand-top {
@@ -792,9 +893,10 @@ onMounted(async () => {
 
 .ucx-demand-top h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
+  color: #102449;
+  font-weight: 700;
   line-height: 1.25;
-  color: #0f172a;
 }
 
 .ucx-demand-desc {
@@ -802,9 +904,9 @@ onMounted(async () => {
   font-size: 13px;
   line-height: 1.6;
   color: #64748b;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
 }
 
@@ -858,6 +960,59 @@ onMounted(async () => {
   margin-left: 10px;
   font-size: 12px;
   color: #64748b;
+}
+
+.action-btn {
+  border-radius: 999px;
+  padding: 8px 16px;
+}
+
+.ucx-filter-actions :deep(.el-button),
+.ucx-demand-actions :deep(.el-button) {
+  border-radius: 999px;
+  padding: 8px 16px;
+}
+
+/* 深度定制表单输入框样式 */
+:deep(.el-input__wrapper),
+:deep(.el-select__wrapper),
+:deep(.el-textarea__inner) {
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(216, 228, 246, 0.9) inset;
+  background: #fdfeff;
+  transition: all 0.25s ease;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-select__wrapper:hover),
+:deep(.el-textarea__inner:hover) {
+  box-shadow: 0 0 0 1px #a4c5f4 inset;
+  background: #fff;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-select__wrapper.is-focused),
+:deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 2px #5a9cf8 inset !important;
+  background: #fff;
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  animation: fadeInUp 0.55s ease both;
+}
+
+.delay-1 {
+  animation-delay: 0.1s;
 }
 
 @media (max-width: 1100px) {

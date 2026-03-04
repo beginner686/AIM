@@ -6,12 +6,12 @@
           <div class="ucx-avatar">{{ avatarLetter }}</div>
         </div>
         <div class="ucx-user-copy">
-          <p class="ucx-kicker">Account Center</p>
+          <p class="ucx-kicker">{{ t('userCenter.kicker') }}</p>
           <h1>{{ userInfo?.username || '—' }}</h1>
           <div class="ucx-meta">
-            <span>邮箱：{{ userInfo?.email || '—' }}</span>
-            <span>地区：{{ locationText }}</span>
-            <span>注册时间：{{ formatDate(userInfo?.createdTime) }}</span>
+            <span>{{ t('userCenter.email') }}{{ userInfo?.email || '—' }}</span>
+            <span>{{ t('userCenter.location') }}{{ locationText }}</span>
+            <span>{{ t('userCenter.registerTime') }}{{ formatDate(userInfo?.createdTime) }}</span>
           </div>
           <el-tag size="small" class="ucx-role-tag" :type="roleTagType">{{ roleText }}</el-tag>
         </div>
@@ -20,27 +20,27 @@
       <div class="ucx-hero-actions">
         <el-button plain @click="showEditDialog = true">
           <el-icon><Edit /></el-icon>
-          编辑资料
+          {{ t('userCenter.editProfile') }}
         </el-button>
-        <el-button type="primary" @click="router.push('/orders')">查看我的订单</el-button>
+        <el-button type="primary" @click="router.push('/orders')">{{ t('userCenter.viewMyOrders') }}</el-button>
       </div>
     </section>
 
     <section class="ucx-kpi-grid">
       <article class="ucx-kpi-card">
-        <p>已发布需求</p>
+        <p>{{ t('userCenter.kpiPublishedDemands') }}</p>
         <strong>{{ myDemands.length }}</strong>
       </article>
       <article class="ucx-kpi-card">
-        <p>开放中</p>
+        <p>{{ t('userCenter.kpiOpen') }}</p>
         <strong>{{ openCount }}</strong>
       </article>
       <article class="ucx-kpi-card">
-        <p>履约中</p>
+        <p>{{ t('userCenter.kpiActive') }}</p>
         <strong>{{ activeCount }}</strong>
       </article>
       <article class="ucx-kpi-card">
-        <p>累计预算</p>
+        <p>{{ t('userCenter.kpiBudget') }}</p>
         <strong>¥{{ formatMoney(totalBudget) }}</strong>
       </article>
     </section>
@@ -49,8 +49,8 @@
       <template #header>
         <div class="ucx-panel-header">
           <div>
-            <h2>执行者入驻申请</h2>
-            <p>提交技能与实名信息，管理员审核通过后将自动升级为执行者账号。</p>
+            <h2>{{ t('userCenter.workerApplyTitle') }}</h2>
+            <p>{{ t('userCenter.workerApplySubtitle') }}</p>
           </div>
           <el-tag :type="workerApplyTagType">{{ workerApplyStatusLabel }}</el-tag>
         </div>
@@ -61,50 +61,50 @@
       </div>
       <div v-else class="worker-apply-wrap">
         <div class="worker-apply-meta">
-          <span>当前状态：{{ workerApplyStatusLabel }}</span>
-          <span v-if="workerApplyInfo?.reviewNote">审核意见：{{ workerApplyInfo.reviewNote }}</span>
+          <span>{{ t('userCenter.currentStatus') }}{{ workerApplyStatusLabel }}</span>
+          <span v-if="workerApplyInfo?.reviewNote">{{ t('userCenter.reviewNote') }}{{ workerApplyInfo.reviewNote }}</span>
         </div>
         <el-form :model="workerApplyForm" label-width="100px" class="worker-apply-form">
-          <el-form-item label="国家">
-            <el-input v-model.trim="workerApplyForm.country" placeholder="如：SG / Singapore" />
+          <el-form-item :label="t('userCenter.fieldCountry')">
+            <el-input v-model.trim="workerApplyForm.country" :placeholder="t('userCenter.placeholderCountry')" />
           </el-form-item>
-          <el-form-item label="城市">
-            <el-input v-model.trim="workerApplyForm.city" placeholder="如：Singapore" />
+          <el-form-item :label="t('userCenter.fieldCity')">
+            <el-input v-model.trim="workerApplyForm.city" :placeholder="t('userCenter.placeholderCity')" />
           </el-form-item>
-          <el-form-item label="技能标签">
-            <el-input v-model.trim="workerApplyForm.skillTags" placeholder="如：翻译, 视频剪辑" />
+          <el-form-item :label="t('userCenter.fieldSkillTags')">
+            <el-input v-model.trim="workerApplyForm.skillTags" :placeholder="t('userCenter.placeholderSkillTags')" />
           </el-form-item>
-          <el-form-item label="报价区间">
+          <el-form-item :label="t('userCenter.fieldPriceRange')">
             <div class="worker-apply-price-row">
               <el-input-number v-model="workerApplyForm.priceMin" :min="0" :precision="2" />
               <span>~</span>
               <el-input-number v-model="workerApplyForm.priceMax" :min="0" :precision="2" />
             </div>
           </el-form-item>
-          <el-form-item label="实名">
-            <el-input v-model.trim="workerApplyForm.realName" placeholder="真实姓名" />
+          <el-form-item :label="t('userCenter.fieldRealName')">
+            <el-input v-model.trim="workerApplyForm.realName" :placeholder="t('userCenter.placeholderRealName')" />
           </el-form-item>
-          <el-form-item label="证件哈希">
-            <el-input v-model.trim="workerApplyForm.idNoHash" placeholder="证件号哈希，不上传明文" />
+          <el-form-item :label="t('userCenter.fieldIdHash')">
+            <el-input v-model.trim="workerApplyForm.idNoHash" :placeholder="t('userCenter.placeholderIdHash')" />
           </el-form-item>
-          <el-form-item label="经验说明">
+          <el-form-item :label="t('userCenter.fieldExperience')">
             <el-input
               v-model.trim="workerApplyForm.experience"
               type="textarea"
               :rows="2"
               maxlength="300"
               show-word-limit
-              placeholder="简要描述履约经验"
+              :placeholder="t('userCenter.placeholderExperience')"
             />
           </el-form-item>
-          <el-form-item label="补充说明">
+          <el-form-item :label="t('userCenter.fieldApplyNote')">
             <el-input
               v-model.trim="workerApplyForm.applyNote"
               type="textarea"
               :rows="2"
               maxlength="500"
               show-word-limit
-              placeholder="可选，提交给审核员"
+              :placeholder="t('userCenter.placeholderApplyNote')"
             />
           </el-form-item>
           <el-form-item>
@@ -114,7 +114,7 @@
               :disabled="!canSubmitWorkerApply"
               @click="submitWorkerApply"
             >
-              {{ workerApplyInfo?.status === 'REJECTED' ? '重新提交申请' : '提交执行者申请' }}
+              {{ workerApplyInfo?.status === 'REJECTED' ? t('userCenter.resubmitApply') : t('userCenter.submitApply') }}
             </el-button>
             <span class="worker-apply-tip">{{ workerApplyActionTip }}</span>
           </el-form-item>
@@ -126,12 +126,12 @@
       <template #header>
         <div class="ucx-panel-header">
           <div>
-            <h2>我发布的需求</h2>
-            <p>个人中心只管理资料和需求，订单请在“我的订单”页查看。</p>
+            <h2>{{ t('userCenter.myDemandsTitle') }}</h2>
+            <p>{{ t('userCenter.myDemandsSubtitle') }}</p>
           </div>
           <div class="ucx-filter-actions">
-            <el-select v-model="statusFilter" clearable placeholder="状态筛选" style="width: 160px;">
-              <el-option label="全部状态" value="" />
+            <el-select v-model="statusFilter" clearable :placeholder="t('userCenter.statusFilter')" style="width: 160px;">
+              <el-option :label="t('userCenter.allStatus')" value="" />
               <el-option
                 v-for="item in demandStatusOptions"
                 :key="item.value"
@@ -139,8 +139,8 @@
                 :value="item.value"
               />
             </el-select>
-            <el-button @click="loadDemands">刷新</el-button>
-            <el-button type="primary" @click="router.push('/publish-demand')">发布新需求</el-button>
+            <el-button @click="loadDemands">{{ t('userCenter.refresh') }}</el-button>
+            <el-button type="primary" @click="router.push('/publish-demand')">{{ t('userCenter.publishNewDemand') }}</el-button>
           </div>
         </div>
       </template>
@@ -148,7 +148,7 @@
       <div v-if="loadingDemands">
         <el-skeleton :rows="4" animated />
       </div>
-      <el-empty v-else-if="filteredDemands.length === 0" description="暂无需求记录" :image-size="90" />
+      <el-empty v-else-if="filteredDemands.length === 0" :description="t('userCenter.emptyDemands')" :image-size="90" />
       <div v-else class="ucx-demand-grid">
         <article
           v-for="item in filteredDemands"
@@ -157,19 +157,19 @@
           @click="handleDemandCardClick(item)"
         >
           <div class="ucx-demand-top">
-            <h3>{{ item.title || item.category || `需求 #${item.id}` }}</h3>
+            <h3>{{ item.title || item.category || t('userCenter.demandWithId', { id: item.id }) }}</h3>
             <el-tag size="small" :type="demandStatusType(item.status)">
               {{ demandStatusText(item.status) }}
             </el-tag>
           </div>
-          <p class="ucx-demand-desc">{{ item.description || '暂无描述' }}</p>
+          <p class="ucx-demand-desc">{{ item.description || t('userCenter.noDesc') }}</p>
           <div class="ucx-demand-meta">
-            <span>国家：{{ item.targetCountry || item.country || '—' }}</span>
-            <span>预算：¥{{ formatMoney(item.budget) }}</span>
-            <span>发布时间：{{ formatDate(item.createdTime) }}</span>
+            <span>{{ t('userCenter.metaCountry') }}{{ item.targetCountry || item.country || '—' }}</span>
+            <span>{{ t('userCenter.metaBudget') }}¥{{ formatMoney(item.budget) }}</span>
+            <span>{{ t('userCenter.metaCreated') }}{{ formatDate(item.createdTime) }}</span>
           </div>
           <div class="ucx-demand-actions">
-            <el-button size="small" @click.stop="goWorkerPool(item.id)">去匹配执行者</el-button>
+            <el-button size="small" @click.stop="goWorkerPool(item.id)">{{ t('userCenter.matchWorker') }}</el-button>
             <el-tooltip
               :content="cancelDemandDisabledReason(item)"
               placement="top"
@@ -183,7 +183,7 @@
                   :disabled="!canCancelDemand(item)"
                   @click.stop="handleCancelDemand(item)"
                 >
-                  取消需求
+                  {{ t('userCenter.cancelDemand') }}
                 </el-button>
               </span>
             </el-tooltip>
@@ -196,8 +196,8 @@
       <template #header>
         <div class="ucx-panel-header">
           <div>
-            <h2>执行者收款方式</h2>
-            <p>仅保存收款外链信息，不接入支付 SDK，不记录资金流水。</p>
+            <h2>{{ t('userCenter.paymentTitle') }}</h2>
+            <p>{{ t('userCenter.paymentSubtitle') }}</p>
           </div>
         </div>
       </template>
@@ -216,28 +216,28 @@
           <el-input v-model.trim="runnerPaymentForm.currency" placeholder="CNY / USD" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :loading="runnerPaymentSaving" @click="saveRunnerPaymentProfile">保存收款方式</el-button>
-          <el-link v-if="runnerPaymentForm.wiseLink" :href="runnerPaymentForm.wiseLink" target="_blank" type="primary">打开 Wise 链接</el-link>
-          <el-link v-if="runnerPaymentForm.paymentUrl" :href="runnerPaymentForm.paymentUrl" target="_blank" type="primary">打开收款链接</el-link>
+          <el-button type="primary" :loading="runnerPaymentSaving" @click="saveRunnerPaymentProfile">{{ t('userCenter.savePayment') }}</el-button>
+          <el-link v-if="runnerPaymentForm.wiseLink" :href="runnerPaymentForm.wiseLink" target="_blank" type="primary">{{ t('userCenter.openWise') }}</el-link>
+          <el-link v-if="runnerPaymentForm.paymentUrl" :href="runnerPaymentForm.paymentUrl" target="_blank" type="primary">{{ t('userCenter.openPaymentLink') }}</el-link>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <el-dialog v-model="showEditDialog" title="编辑个人资料" width="460px" destroy-on-close>
+    <el-dialog v-model="showEditDialog" :title="t('userCenter.editDialogTitle')" width="460px" destroy-on-close>
       <el-form :model="editForm" label-width="80px" label-position="left">
-        <el-form-item label="邮箱">
-          <el-input v-model="editForm.email" placeholder="输入邮箱" />
+        <el-form-item :label="t('userCenter.fieldEmail')">
+          <el-input v-model="editForm.email" :placeholder="t('userCenter.placeholderEmail')" />
         </el-form-item>
-        <el-form-item label="国家">
-          <el-input v-model="editForm.country" placeholder="输入国家" />
+        <el-form-item :label="t('userCenter.fieldCountry')">
+          <el-input v-model="editForm.country" :placeholder="t('userCenter.placeholderInputCountry')" />
         </el-form-item>
-        <el-form-item label="城市">
-          <el-input v-model="editForm.city" placeholder="输入城市" />
+        <el-form-item :label="t('userCenter.fieldCity')">
+          <el-input v-model="editForm.city" :placeholder="t('userCenter.placeholderInputCity')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showEditDialog = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+        <el-button @click="showEditDialog = false">{{ t('userCenter.cancel') }}</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSave">{{ t('userCenter.save') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -248,6 +248,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Edit } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/store/modules/user';
 import { getCurrentUserApi, updateUserProfileApi } from '@/api/user';
 import { cancelDemandApi, getMyDemandListApi } from '@/api/demand';
@@ -267,6 +268,7 @@ import { formatMoney } from '@/utils/format';
 
 const router = useRouter();
 const userStore = useUserStore();
+const { t } = useI18n();
 
 const userInfo = ref(null);
 const myDemands = ref([]);
@@ -321,15 +323,15 @@ const locationText = computed(() => {
   const country = userInfo.value?.country || '';
   const city = userInfo.value?.city || '';
   if (country && city) return `${country} · ${city}`;
-  return country || city || '—';
+  return country || city || t('userCenter.dash');
 });
 
 const workerApplyStatus = computed(() => String(workerApplyInfo.value?.status || userInfo.value?.workerApplyStatus || 'NONE').toUpperCase());
 const workerApplyStatusLabel = computed(() => {
-  if (workerApplyStatus.value === 'PENDING') return '待审核';
-  if (workerApplyStatus.value === 'APPROVED') return '已通过';
-  if (workerApplyStatus.value === 'REJECTED') return '已驳回';
-  return '未申请';
+  if (workerApplyStatus.value === 'PENDING') return t('userCenter.applyPending');
+  if (workerApplyStatus.value === 'APPROVED') return t('userCenter.applyApproved');
+  if (workerApplyStatus.value === 'REJECTED') return t('userCenter.applyRejected');
+  return t('userCenter.applyNone');
 });
 const workerApplyTagType = computed(() => {
   if (workerApplyStatus.value === 'PENDING') return 'warning';
@@ -342,10 +344,10 @@ const canSubmitWorkerApply = computed(() => {
   return workerApplyStatus.value === 'NONE' || workerApplyStatus.value === 'REJECTED';
 });
 const workerApplyActionTip = computed(() => {
-  if (workerApplyStatus.value === 'PENDING') return '审核中，请等待管理员处理。';
-  if (workerApplyStatus.value === 'APPROVED') return '审核已通过，刷新后可使用执行者功能。';
-  if (workerApplyStatus.value === 'REJECTED') return '可修改资料后重新提交。';
-  return '提交后通常在管理员审核通过后生效。';
+  if (workerApplyStatus.value === 'PENDING') return t('userCenter.applyTipPending');
+  if (workerApplyStatus.value === 'APPROVED') return t('userCenter.applyTipApproved');
+  if (workerApplyStatus.value === 'REJECTED') return t('userCenter.applyTipRejected');
+  return t('userCenter.applyTipDefault');
 });
 
 const filteredDemands = computed(() => {
@@ -437,15 +439,15 @@ function cancelDemandDisabledReason(item) {
     return '';
   }
   if (status === 'MATCHED' || status === 'IN_PROGRESS') {
-    return '该需求已进入匹配/履约，请先取消相关订单后再取消需求';
+    return t('userCenter.cancelReasonMatched');
   }
   if (status === 'DONE') {
-    return '该需求已完成，不能取消';
+    return t('userCenter.cancelReasonDone');
   }
   if (status === 'CLOSED') {
-    return '该需求已关闭，无需重复取消';
+    return t('userCenter.cancelReasonClosed');
   }
-  return `当前状态 ${status} 不支持取消`;
+  return t('userCenter.cancelReasonUnsupported', { status });
 }
 
 function handleDemandCardClick(item) {
@@ -464,17 +466,17 @@ async function handleCancelDemand(item) {
     return;
   }
   try {
-    await ElMessageBox.confirm('确认取消该需求？取消后将不再参与匹配。', '取消需求', {
-      confirmButtonText: '确认取消',
-      cancelButtonText: '返回',
+    await ElMessageBox.confirm(t('userCenter.cancelConfirmMessage'), t('userCenter.cancelConfirmTitle'), {
+      confirmButtonText: t('userCenter.confirmCancel'),
+      cancelButtonText: t('userCenter.back'),
       type: 'warning',
     });
     await cancelDemandApi(demandId);
-    ElMessage.success('需求已取消');
+    ElMessage.success(t('userCenter.cancelSuccess'));
     await loadDemands();
   } catch (error) {
     if (error !== 'cancel' && error !== 'close') {
-      ElMessage.error(error?.message || '取消需求失败，请稍后重试');
+      ElMessage.error(error?.message || t('userCenter.cancelFailed'));
     }
   }
 }
@@ -485,9 +487,9 @@ async function handleSave() {
     await updateUserProfileApi(editForm.value);
     await loadUserProfile();
     showEditDialog.value = false;
-    ElMessage.success('资料已更新');
+    ElMessage.success(t('userCenter.profileUpdated'));
   } catch {
-    ElMessage.error('更新失败，请稍后重试');
+    ElMessage.error(t('userCenter.profileUpdateFailed'));
   } finally {
     saving.value = false;
   }
@@ -531,11 +533,11 @@ async function submitWorkerApply() {
   }
   if (!workerApplyForm.value.country || !workerApplyForm.value.city || !workerApplyForm.value.skillTags
     || !workerApplyForm.value.realName || !workerApplyForm.value.idNoHash) {
-    ElMessage.warning('请先完整填写必填项');
+    ElMessage.warning(t('userCenter.fillRequired'));
     return;
   }
   if (Number(workerApplyForm.value.priceMax || 0) < Number(workerApplyForm.value.priceMin || 0)) {
-    ElMessage.warning('报价上限不能低于下限');
+    ElMessage.warning(t('userCenter.priceRangeInvalid'));
     return;
   }
   workerApplySubmitting.value = true;
@@ -552,10 +554,10 @@ async function submitWorkerApply() {
       applyNote: String(workerApplyForm.value.applyNote || '').trim(),
     };
     await submitWorkerApplyApi(payload);
-    ElMessage.success('执行者申请已提交，请等待审核');
+    ElMessage.success(t('userCenter.applySubmitSuccess'));
     await Promise.allSettled([loadUserProfile(), loadWorkerApply()]);
   } catch {
-    ElMessage.error('执行者申请提交失败');
+    ElMessage.error(t('userCenter.applySubmitFailed'));
   } finally {
     workerApplySubmitting.value = false;
   }
@@ -593,10 +595,10 @@ async function saveRunnerPaymentProfile() {
   runnerPaymentSaving.value = true;
   try {
     await upsertMyRunnerPaymentProfileApi(runnerPaymentForm.value);
-    ElMessage.success('收款方式已保存');
+    ElMessage.success(t('userCenter.paymentSaved'));
     await loadRunnerPaymentProfile();
   } catch {
-    ElMessage.error('收款方式保存失败');
+    ElMessage.error(t('userCenter.paymentSaveFailed'));
   } finally {
     runnerPaymentSaving.value = false;
   }

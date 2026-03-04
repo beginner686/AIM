@@ -2,16 +2,14 @@
   <div class="publish-page">
     <section class="hero-strip">
       <div>
-        <p class="kicker">Demand Creation Workspace</p>
-        <h1>发布跨国需求</h1>
-        <p class="sub">
-          一次提交，进入平台匹配、托管交易、履约结算的完整链路。需求写得越清晰，成交效率越高。
-        </p>
+        <p class="kicker">{{ t('publishDemand.kicker') }}</p>
+        <h1>{{ t('publishDemand.title') }}</h1>
+        <p class="sub">{{ t('publishDemand.subtitle') }}</p>
       </div>
       <div class="hero-badges">
-        <span class="badge">托管保障</span>
-        <span class="badge">风控审计</span>
-        <span class="badge">跨国履约</span>
+        <span class="badge">{{ t('publishDemand.badgeEscrow') }}</span>
+        <span class="badge">{{ t('publishDemand.badgeRisk') }}</span>
+        <span class="badge">{{ t('publishDemand.badgeCrossBorder') }}</span>
       </div>
     </section>
 
@@ -19,18 +17,18 @@
       <el-card class="form-card" shadow="never">
         <template #header>
           <div class="section-head">
-            <h2>需求信息</h2>
-            <span class="section-tip">* 为必填项</span>
+            <h2>{{ t('publishDemand.sectionInfo') }}</h2>
+            <span class="section-tip">{{ t('publishDemand.requiredTip') }}</span>
           </div>
         </template>
 
         <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">
           <div class="two-col">
-            <el-form-item label="标题" prop="title">
-              <el-input v-model="formData.title" maxlength="50" placeholder="例如：新加坡市场产品文案本地化" />
+            <el-form-item :label="t('publishDemand.fieldTitle')" prop="title">
+              <el-input v-model="formData.title" maxlength="50" :placeholder="t('publishDemand.placeholderTitle')" />
             </el-form-item>
 
-            <el-form-item label="类目" prop="category">
+            <el-form-item :label="t('publishDemand.fieldCategory')" prop="category">
               <el-autocomplete
                 v-model="formData.category"
                 class="category-autocomplete"
@@ -40,7 +38,7 @@
                 :highlight-first-item="true"
                 maxlength="50"
                 clearable
-                placeholder="搜索或输入类目，例如：网站开发 / 翻译 / 视频剪辑"
+                :placeholder="t('publishDemand.placeholderCategory')"
                 @input="handleCategoryInput"
                 @select="handleCategorySelect"
               >
@@ -55,7 +53,7 @@
           </div>
 
           <div class="preset-row hot-row">
-            <span class="preset-label">热门推荐：</span>
+            <span class="preset-label">{{ t('publishDemand.hotCategories') }}</span>
             <el-tag
               v-for="item in hotCategoryOptions"
               :key="item.code"
@@ -70,7 +68,7 @@
           </div>
 
           <div class="two-col">
-            <el-form-item label="预算（USD）" prop="budget">
+            <el-form-item :label="t('publishDemand.fieldBudget')" prop="budget">
               <el-input-number
                 v-model="formData.budget"
                 :min="0.01"
@@ -81,13 +79,13 @@
               />
             </el-form-item>
 
-            <el-form-item label="国家" prop="country">
+            <el-form-item :label="t('publishDemand.fieldCountry')" prop="country">
               <el-select
                 v-model="formData.country"
                 class="country-select"
                 filterable
                 clearable
-                placeholder="请选择国家"
+                :placeholder="t('publishDemand.placeholderCountry')"
                 :loading="countryLoading"
               >
                 <el-option-group
@@ -103,31 +101,31 @@
                   >
                     <div class="country-option-item">
                       <span class="country-option-label">{{ item.label }}</span>
-                      <span v-if="item.hot" class="country-option-hot">推荐</span>
+                      <span v-if="item.hot" class="country-option-hot">{{ t('publishDemand.recommended') }}</span>
                     </div>
                   </el-option>
                 </el-option-group>
               </el-select>
               <div v-if="!countryLoading && groupedCountryOptions.length === 0" class="country-empty-tip">
-                暂无可选国家，请联系管理员配置国家字典。
+                {{ t('publishDemand.countryEmptyTip') }}
               </div>
             </el-form-item>
           </div>
 
-          <el-form-item label="描述" prop="description">
+          <el-form-item :label="t('publishDemand.fieldDescription')" prop="description">
             <el-input
               v-model="formData.description"
               type="textarea"
               :rows="6"
               maxlength="500"
               show-word-limit
-              placeholder="请写清交付内容、时效、验收标准和协作方式。"
+              :placeholder="t('publishDemand.placeholderDescription')"
             />
           </el-form-item>
 
           <div class="action-row">
-            <el-button type="primary" :loading="submitLoading" @click="handleSubmit">发布需求</el-button>
-            <el-button @click="resetForm">重置</el-button>
+            <el-button type="primary" :loading="submitLoading" @click="handleSubmit">{{ t('publishDemand.submit') }}</el-button>
+            <el-button @click="resetForm">{{ t('publishDemand.reset') }}</el-button>
           </div>
         </el-form>
       </el-card>
@@ -136,24 +134,24 @@
         <el-card class="side-card" shadow="never">
           <template #header>
             <div class="section-head">
-              <h2>金额拆分预估</h2>
+              <h2>{{ t('publishDemand.splitTitle') }}</h2>
             </div>
           </template>
 
           <div class="split-item">
-            <span>订单预算</span>
+            <span>{{ t('publishDemand.splitOrderBudget') }}</span>
             <strong>{{ formatMoney(budgetAmount) }}</strong>
           </div>
           <div class="split-item">
-            <span>平台抽成 (6%)</span>
+            <span>{{ t('publishDemand.splitPlatformFee') }}</span>
             <strong>{{ formatMoney(platformFeeAmount) }}</strong>
           </div>
           <div class="split-item">
-            <span>托管手续费 (0.5%)</span>
+            <span>{{ t('publishDemand.splitEscrowFee') }}</span>
             <strong>{{ formatMoney(escrowFeeAmount) }}</strong>
           </div>
           <div class="split-item highlight">
-            <span>执行者预估到手</span>
+            <span>{{ t('publishDemand.splitWorkerIncome') }}</span>
             <strong>{{ formatMoney(workerIncomeAmount) }}</strong>
           </div>
         </el-card>
@@ -161,14 +159,14 @@
         <el-card class="side-card" shadow="never">
           <template #header>
             <div class="section-head">
-              <h2>成交建议</h2>
+              <h2>{{ t('publishDemand.tipsTitle') }}</h2>
             </div>
           </template>
           <ul class="tips">
-            <li>标题建议包含国家 + 类目 + 交付目标，提升匹配速度。</li>
-            <li>预算越明确，执行者报价越稳定，减少议价时间。</li>
-            <li>验收标准写进描述，能显著降低争议率。</li>
-            <li>使用平台托管交易，避免线下支付风险。</li>
+            <li>{{ t('publishDemand.tip1') }}</li>
+            <li>{{ t('publishDemand.tip2') }}</li>
+            <li>{{ t('publishDemand.tip3') }}</li>
+            <li>{{ t('publishDemand.tip4') }}</li>
           </ul>
         </el-card>
       </div>
@@ -180,12 +178,14 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { createDemandApi } from '@/api/demand';
 import { getCountryDictApi } from '@/api/dict';
 import { CATEGORY_OPTIONS, CATEGORY_PRESETS } from '@/dicts';
 import { formatMoney } from '@/utils/format';
 
 const router = useRouter();
+const { t, locale } = useI18n();
 const formRef = ref(null);
 const submitLoading = ref(false);
 
@@ -199,20 +199,42 @@ const formData = reactive({
 
 const categoryPresets = CATEGORY_PRESETS;
 const FALLBACK_OTHER_CODE = 'other';
-const FALLBACK_OTHER_LABEL = '定制需求';
-const FALLBACK_GUIDE_TEXT = '未找到？发布为【定制需求】';
+const REGION_ORDER = ['ASIA', 'EUROPE', 'OTHER'];
+const REGION_KEY_MAP = {
+  ASIA: 'asia',
+  EUROPE: 'europe',
+  OTHER: 'other',
+};
+const fallbackOtherLabel = computed(() => t('publishDemand.fallbackOtherLabel'));
+const fallbackGuideText = computed(() => t('publishDemand.fallbackGuideText'));
 const latestCategoryKeyword = ref('');
 const selectedCategoryCode = ref('');
 
+const CATEGORY_I18N_KEY_MAP = {
+  '翻译本地化': 'categoryLabel.translationLocalization',
+  '远程助理': 'categoryLabel.remoteAssistant',
+  '视频剪辑': 'categoryLabel.videoEditing',
+  '海外投放': 'categoryLabel.overseasAds',
+  '客服支持': 'categoryLabel.customerSupport',
+  '平面设计': 'categoryLabel.graphicDesign',
+  'UI/UX设计': 'categoryLabel.uiuxDesign',
+  '文案策划': 'categoryLabel.copywriting',
+  '社媒运营': 'categoryLabel.socialMediaOps',
+  'SEO优化': 'categoryLabel.seoOptimization',
+  '网红/KOL合作': 'categoryLabel.kolCollab',
+  '网站开发': 'categoryLabel.webDevelopment',
+  '电商代运营': 'categoryLabel.ecommerceOps',
+  '跨境物流': 'categoryLabel.crossBorderLogistics',
+  '财税服务': 'categoryLabel.financeTax',
+  '海外公司注册': 'categoryLabel.companyRegistration',
+  '法律咨询': 'categoryLabel.legalConsulting',
+  'UI设计': 'categoryLabel.uiDesign',
+  '翻译': 'categoryLabel.translation',
+  'AI服务': 'categoryLabel.aiService',
+};
+
 const countryOptions = ref([]);
 const countryLoading = ref(false);
-
-const REGION_ORDER = ['ASIA', 'EUROPE', 'OTHER'];
-const REGION_LABEL_MAP = {
-  ASIA: 'Asia',
-  EUROPE: 'Europe',
-  OTHER: 'Other',
-};
 
 const categoryOptionList = computed(() => {
   const fromOptions = Array.isArray(CATEGORY_OPTIONS) ? CATEGORY_OPTIONS : [];
@@ -220,7 +242,7 @@ const categoryOptionList = computed(() => {
     return fromOptions
       .map((item) => ({
         code: String(item?.code || item?.label || '').trim(),
-        label: String(item?.label || item?.code || '').trim(),
+        label: localizeCategoryLabel(String(item?.label || item?.code || '').trim()),
         sort: Number(item?.sort || 0),
         hot: Boolean(item?.hot),
         isFallback: false,
@@ -231,7 +253,7 @@ const categoryOptionList = computed(() => {
   return (Array.isArray(categoryPresets) ? categoryPresets : [])
     .map((label, index) => ({
       code: String(label),
-      label: String(label),
+      label: localizeCategoryLabel(String(label)),
       sort: (index + 1) * 10,
       hot: index < 6,
       isFallback: false,
@@ -262,7 +284,7 @@ const groupedCountryOptions = computed(() => {
   if (hotOptions.length > 0) {
     groups.push({
       key: 'hot',
-      label: '热门国家',
+      label: t('publishDemand.countryGroupHot'),
       options: hotOptions,
     });
   }
@@ -271,9 +293,10 @@ const groupedCountryOptions = computed(() => {
   REGION_ORDER.forEach((region) => {
     const options = remain.filter((item) => item.region === region);
     if (options.length > 0) {
+      const regionKey = REGION_KEY_MAP[region] || 'other';
       groups.push({
         key: `region_${region}`,
-        label: REGION_LABEL_MAP[region],
+        label: t(`publishDemand.region.${regionKey}`),
         options,
       });
     }
@@ -282,15 +305,15 @@ const groupedCountryOptions = computed(() => {
   return groups;
 });
 
-const rules = {
-  title: [{ required: true, message: '请输入标题', trigger: 'blur' }],
-  category: [{ required: true, message: '请输入类目', trigger: 'blur' }],
+const rules = computed(() => ({
+  title: [{ required: true, message: t('publishDemand.ruleTitleRequired'), trigger: 'blur' }],
+  category: [{ required: true, message: t('publishDemand.ruleCategoryRequired'), trigger: 'blur' }],
   budget: [
-    { required: true, message: '请输入预算', trigger: 'change' },
+    { required: true, message: t('publishDemand.ruleBudgetRequired'), trigger: 'change' },
     {
       validator: (_rule, value, callback) => {
         if (value === null || value === undefined || Number(value) <= 0) {
-          callback(new Error('预算必须为正数'));
+          callback(new Error(t('publishDemand.ruleBudgetPositive')));
           return;
         }
         callback();
@@ -298,9 +321,9 @@ const rules = {
       trigger: 'change',
     },
   ],
-  country: [{ required: true, message: '请选择国家', trigger: 'change' }],
-  description: [{ required: true, message: '请输入描述', trigger: 'blur' }],
-};
+  country: [{ required: true, message: t('publishDemand.ruleCountryRequired'), trigger: 'change' }],
+  description: [{ required: true, message: t('publishDemand.ruleDescriptionRequired'), trigger: 'blur' }],
+}));
 
 const budgetAmount = computed(() => Number(formData.budget || 0));
 const platformFeeAmount = computed(() => round2(budgetAmount.value * 0.06));
@@ -331,8 +354,8 @@ function queryCategorySuggestions(queryString, cb) {
   cb([
     {
       code: FALLBACK_OTHER_CODE,
-      label: FALLBACK_GUIDE_TEXT,
-      value: FALLBACK_GUIDE_TEXT,
+      label: fallbackGuideText.value,
+      value: fallbackGuideText.value,
       isFallback: true,
     },
   ]);
@@ -342,7 +365,7 @@ function handleCategorySelect(item) {
   if (!item) return;
   if (item.isFallback || item.code === FALLBACK_OTHER_CODE) {
     selectedCategoryCode.value = FALLBACK_OTHER_CODE;
-    formData.category = FALLBACK_OTHER_LABEL;
+    formData.category = fallbackOtherLabel.value;
     return;
   }
   selectedCategoryCode.value = item.code || '';
@@ -355,7 +378,7 @@ function handleCategoryInput(value) {
     selectedCategoryCode.value = '';
     return;
   }
-  if (text === FALLBACK_OTHER_LABEL) {
+  if (text === fallbackOtherLabel.value) {
     selectedCategoryCode.value = FALLBACK_OTHER_CODE;
     return;
   }
@@ -411,9 +434,29 @@ function parseCountryExtra(extraJson) {
   }
 }
 
+function localizeCountryLabel(code, fallbackLabel) {
+  const regionCode = String(code || '').trim().toUpperCase();
+  const fallback = String(fallbackLabel || '').trim();
+  if (!regionCode) return fallback;
+  try {
+    const displayNames = new Intl.DisplayNames([locale.value], { type: 'region' });
+    return displayNames.of(regionCode) || fallback || regionCode;
+  } catch {
+    return fallback || regionCode;
+  }
+}
+
+function localizeCategoryLabel(label) {
+  const text = String(label || '').trim();
+  if (!text) return '';
+  const i18nKey = CATEGORY_I18N_KEY_MAP[text];
+  return i18nKey ? t(i18nKey) : text;
+}
+
 function normalizeCountryOption(row, index) {
   const code = String(row?.dict_code || row?.dictCode || '').trim().toUpperCase();
-  const label = String(row?.dict_label || row?.dictLabel || '').trim();
+  const rawLabel = String(row?.dict_label || row?.dictLabel || '').trim();
+  const label = localizeCountryLabel(code, rawLabel);
   const sortNo = Number(row?.sort_no ?? row?.sortNo ?? (index + 1) * 10);
   const extraJson = row?.extra_json || row?.extraJson || '';
   const extra = parseCountryExtra(extraJson);
@@ -449,7 +492,7 @@ async function loadCountryOptions() {
       });
   } catch {
     countryOptions.value = [];
-    ElMessage.error('国家字典加载失败，请稍后重试');
+    ElMessage.error(t('publishDemand.countryLoadFailed'));
   } finally {
     countryLoading.value = false;
   }
@@ -468,12 +511,12 @@ async function handleSubmit() {
       category: selectedCategoryCode.value === FALLBACK_OTHER_CODE
         ? FALLBACK_OTHER_CODE
         : String(formData.category || '').trim(),
-      // 国家提交 dict_code（如 SG/US）
+      // Submit dict_code country value (e.g. SG/US)
       country: String(formData.country || '').trim().toUpperCase(),
     };
     const data = await createDemandApi(payload);
     const demandId = data?.demandId || data?.id || data || '';
-    ElMessage.success('需求发布成功');
+    ElMessage.success(t('publishDemand.submitSuccess'));
     router.push({
       path: '/worker-pool',
       query: demandId ? { demandId: String(demandId) } : undefined,

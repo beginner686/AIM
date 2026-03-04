@@ -21,9 +21,9 @@
         <div class="header-right">
           <div class="user-chip">
             <span class="user-avatar">{{ avatarLetter }}</span>
-            <span class="user-name">{{ userStore.userInfo?.username || '未登录' }}</span>
+            <span class="user-name">{{ userStore.userInfo?.username || $t('layout.notLoggedIn') }}</span>
           </div>
-          <button class="logout-btn" @click="logout">退出</button>
+          <button class="logout-btn" @click="logout">{{ $t('layout.logout') }}</button>
         </div>
       </div>
     </header>
@@ -36,8 +36,11 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/store/modules/user';
 import { USER_ROLE } from '@/dicts';
+
+const { t } = useI18n();
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -50,22 +53,22 @@ const avatarLetter = computed(() => {
   return name.charAt(0).toUpperCase() || 'U';
 });
 
-const adminNavItems = [
-  { key: 'admin-overview', to: '/admin', label: '管理总览' },
-  { key: 'admin-worker-apply', to: { path: '/admin', query: { tab: 'workerApply' } }, label: '执行者审核' },
-  { key: 'admin-fees', to: { path: '/admin', query: { tab: 'fees' } }, label: '费率配置' },
-];
+const adminNavItems = computed(() => [
+  { key: 'admin-overview', to: '/admin', label: t('layout.adminOverview') },
+  { key: 'admin-worker-apply', to: { path: '/admin', query: { tab: 'workerApply' } }, label: t('layout.workerApply') },
+  { key: 'admin-fees', to: { path: '/admin', query: { tab: 'fees' } }, label: t('layout.feeConfig') },
+]);
 
-const userNavItems = [
-  { key: 'home', to: '/home', label: '首页' },
-  { key: 'publish-demand', to: '/publish-demand', label: '发布需求' },
-  { key: 'worker-pool', to: '/worker-pool', label: '执行者' },
-  { key: 'demand-applications', to: '/demand-applications', label: '需求申请' },
-  { key: 'orders', to: '/orders', label: '我的订单' },
-  { key: 'user-center', to: '/user-center', label: '个人中心' },
-];
+const userNavItems = computed(() => [
+  { key: 'home', to: '/home', label: t('layout.home') },
+  { key: 'publish-demand', to: '/publish-demand', label: t('layout.publishDemand') },
+  { key: 'worker-pool', to: '/worker-pool', label: t('layout.executor') },
+  { key: 'demand-applications', to: '/demand-applications', label: t('layout.demandApplications') },
+  { key: 'orders', to: '/orders', label: t('layout.myOrders') },
+  { key: 'user-center', to: '/user-center', label: t('layout.userCenter') },
+]);
 
-const navItems = computed(() => (isAdmin.value ? adminNavItems : userNavItems));
+const navItems = computed(() => (isAdmin.value ? adminNavItems.value : userNavItems.value));
 
 function logout() {
   userStore.clearAuth();

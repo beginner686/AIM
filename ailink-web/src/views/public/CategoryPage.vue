@@ -5,8 +5,8 @@
       <div class="light light-b" />
       <div class="hero-inner reveal-up">
         <p class="eyebrow">SERVICE DIRECTORY</p>
-        <h1>跨境服务类目目录</h1>
-        <p>通过类目快速定位需求场景，进入需求大厅后可继续按国家和关键词精细筛选。</p>
+        <h1>{{ t('categoryPage.title') }}</h1>
+        <p>{{ t('categoryPage.subtitle') }}</p>
       </div>
     </section>
 
@@ -15,12 +15,12 @@
         <el-input
           v-model="keyword"
           clearable
-          placeholder="搜索类目（如：翻译、投放、客服）"
+          :placeholder="t('categoryPage.searchPlaceholder')"
           class="search-input"
         >
           <template #prefix><el-icon><Search /></el-icon></template>
         </el-input>
-        <p>共 {{ filteredCategories.length }} 个可用类目</p>
+        <p>{{ t('categoryPage.count', { count: filteredCategories.length }) }}</p>
       </div>
     </section>
 
@@ -29,23 +29,23 @@
         <RouterLink
           v-for="(item, idx) in filteredCategories"
           :key="item.value"
-          :to="`/explore/demands?category=${encodeURIComponent(item.label)}`"
+          :to="`/explore/demands?category=${encodeURIComponent(item.value)}`"
           class="category-card reveal-up"
           :style="{ animationDelay: `${idx * 0.035}s` }"
         >
           <div class="top">
-            <span class="icon">{{ getIcon(item.label) }}</span>
+            <span class="icon">{{ getIcon(item.value) }}</span>
             <span class="arrow">→</span>
           </div>
           <h3>{{ item.label }}</h3>
-          <p>查看该类目下的公开需求</p>
+          <p>{{ t('categoryPage.cardDesc') }}</p>
         </RouterLink>
       </div>
 
       <el-empty
         v-if="filteredCategories.length === 0"
         class="empty-box"
-        description="没有匹配的类目，请尝试其他关键词"
+        :description="t('categoryPage.empty')"
         :image-size="120"
       />
     </section>
@@ -55,10 +55,34 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { Search } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
 import { CATEGORY_PRESETS } from '@/dicts';
 
+const { t } = useI18n();
 const keyword = ref('');
-const categories = CATEGORY_PRESETS.map((label) => ({ label, value: label }));
+const CATEGORY_I18N_KEY_MAP = {
+  '翻译本地化': 'categoryLabel.translationLocalization',
+  '远程助理': 'categoryLabel.remoteAssistant',
+  '视频剪辑': 'categoryLabel.videoEditing',
+  '海外投放': 'categoryLabel.overseasAds',
+  '客服支持': 'categoryLabel.customerSupport',
+  '平面设计': 'categoryLabel.graphicDesign',
+  'UI/UX设计': 'categoryLabel.uiuxDesign',
+  '文案策划': 'categoryLabel.copywriting',
+  '社媒运营': 'categoryLabel.socialMediaOps',
+  'SEO优化': 'categoryLabel.seoOptimization',
+  '网红/KOL合作': 'categoryLabel.kolCollab',
+  '网站开发': 'categoryLabel.webDevelopment',
+  '电商代运营': 'categoryLabel.ecommerceOps',
+  '跨境物流': 'categoryLabel.crossBorderLogistics',
+  '财税服务': 'categoryLabel.financeTax',
+  '海外公司注册': 'categoryLabel.companyRegistration',
+  '法律咨询': 'categoryLabel.legalConsulting',
+  'UI设计': 'categoryLabel.uiDesign',
+  '翻译': 'categoryLabel.translation',
+  'AI服务': 'categoryLabel.aiService',
+};
+const categories = CATEGORY_PRESETS.map((value) => ({ label: localizeCategoryLabel(value), value }));
 
 const iconMap = {
   翻译本地化: '🌐',
@@ -87,6 +111,13 @@ function getIcon(label) {
   if (iconMap[label]) return iconMap[label];
   const index = Math.abs(hashCode(label || 'x')) % defaultIcons.length;
   return defaultIcons[index];
+}
+
+function localizeCategoryLabel(label) {
+  const text = String(label || '').trim();
+  if (!text) return '';
+  const i18nKey = CATEGORY_I18N_KEY_MAP[text];
+  return i18nKey ? t(i18nKey) : text;
 }
 
 function hashCode(value) {

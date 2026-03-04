@@ -2,41 +2,39 @@
   <div class="worker-page">
     <section class="hero">
       <div class="hero-left">
-        <p class="kicker">Worker Matching Workspace</p>
-        <h1>执行者资源池</h1>
-        <p class="sub">
-          基于国家与类目快速筛选可用执行者，直接创建订单进入服务费解锁履约流程。
-        </p>
+        <p class="kicker">{{ t('workerPool.kicker') }}</p>
+        <h1>{{ t('workerPool.title') }}</h1>
+        <p class="sub">{{ t('workerPool.subtitle') }}</p>
         <div class="hero-tags">
-          <span class="chip">在线资源 {{ workers.length }}</span>
-          <span class="chip">平均评分 {{ avgRating.toFixed(1) }}</span>
-          <span class="chip">需求ID {{ demandId || '未携带' }}</span>
+          <span class="chip">{{ t('workerPool.onlineResources') }} {{ workers.length }}</span>
+          <span class="chip">{{ t('workerPool.avgRating') }} {{ avgRating.toFixed(1) }}</span>
+          <span class="chip">{{ t('workerPool.demandId') }} {{ demandId || t('workerPool.notProvided') }}</span>
         </div>
       </div>
 
       <div class="hero-right">
-        <el-button type="primary" @click="$router.push('/publish-demand')">发布新需求</el-button>
-        <el-button @click="resetFilters">清空筛选</el-button>
+        <el-button type="primary" @click="$router.push('/publish-demand')">{{ t('workerPool.publishNewDemand') }}</el-button>
+        <el-button @click="resetFilters">{{ t('workerPool.clearFilters') }}</el-button>
       </div>
     </section>
 
     <el-alert
       v-if="!demandId"
-      title="未检测到 demandId，当前只能浏览资源，无法创建订单。请先发布需求。"
+      :title="t('workerPool.alertDemandIdMissing')"
       type="warning"
       :closable="false"
       show-icon
     />
     <el-alert
       v-else-if="demandInfo && !isDemandOwner"
-      title="当前账号不是该需求的发布者，不能创建订单。请切换到发布该需求的账号。"
+      :title="t('workerPool.alertNotDemandOwner')"
       type="warning"
       :closable="false"
       show-icon
     />
     <el-alert
       v-else-if="demandInfo"
-      :title="`当前需求 #${demandInfo.id}：${getCountryLabel(demandInfo.targetCountry) || demandInfo.targetCountry || '—'} / ${resolveDemandCategoryLabel(demandInfo.category) || '—'}`"
+      :title="demandInfoAlertTitle"
       type="info"
       :closable="false"
       show-icon
@@ -50,7 +48,7 @@
     />
     <el-alert
       v-if="demandFallbackActive"
-      title="当前需求暂无直接匹配执行者，已展示全部可用执行者。你可以手动调整国家/类目继续筛选。"
+      :title="t('workerPool.alertFallback')"
       type="warning"
       :closable="false"
       show-icon
@@ -59,19 +57,19 @@
     <el-card class="filter-card" shadow="never">
       <template #header>
         <div class="section-head">
-          <h2>筛选执行者</h2>
-          <span class="count">国家/类目支持模糊检索</span>
+          <h2>{{ t('workerPool.filterTitle') }}</h2>
+          <span class="count">{{ t('workerPool.filterHint') }}</span>
         </div>
       </template>
 
       <el-form :model="filters" class="filter-form" label-width="76px">
         <div class="filter-grid">
-          <el-form-item label="国家">
+          <el-form-item :label="t('workerPool.fieldCountry')">
             <el-select
               v-model="filters.country"
               filterable
               clearable
-              placeholder="请选择国家"
+              :placeholder="t('workerPool.placeholderCountry')"
               :loading="countryLoading"
               @change="handleFilterChange"
             >
@@ -84,12 +82,12 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="类目">
+          <el-form-item :label="t('workerPool.fieldCategory')">
             <el-select
               v-model="filters.category"
               filterable
               clearable
-              placeholder="请选择类目"
+              :placeholder="t('workerPool.placeholderCategory')"
               @change="handleFilterChange"
             >
               <el-option
@@ -102,11 +100,11 @@
           </el-form-item>
 
           <div class="filter-actions">
-            <el-button type="primary" :loading="listLoading" @click="loadWorkers">搜索</el-button>
-            <el-button @click="resetFilters">重置</el-button>
+            <el-button type="primary" :loading="listLoading" @click="loadWorkers">{{ t('workerPool.search') }}</el-button>
+            <el-button @click="resetFilters">{{ t('workerPool.reset') }}</el-button>
           </div>
         </div>
-        <el-form-item v-if="hotCountryOptions.length" label="热门国家：" class="quick-form-item">
+        <el-form-item v-if="hotCountryOptions.length" :label="t('workerPool.hotCountries')" class="quick-form-item">
           <div class="quick-tags">
             <el-tag
               v-for="item in hotCountryOptions"
@@ -121,7 +119,7 @@
           </div>
         </el-form-item>
 
-        <el-form-item v-if="hotCategoryOptions.length" label="热门类目：" class="quick-form-item">
+        <el-form-item v-if="hotCategoryOptions.length" :label="t('workerPool.hotCategories')" class="quick-form-item">
           <div class="quick-tags">
             <el-tag
               v-for="item in hotCategoryOptions"
@@ -140,15 +138,15 @@
 
     <section class="metric-grid">
       <article class="metric">
-        <p class="label">筛选结果</p>
+        <p class="label">{{ t('workerPool.metricResults') }}</p>
         <p class="value">{{ workers.length }}</p>
       </article>
       <article class="metric">
-        <p class="label">平均评分</p>
+        <p class="label">{{ t('workerPool.metricAvgRating') }}</p>
         <p class="value">{{ avgRating.toFixed(1) }}</p>
       </article>
       <article class="metric">
-        <p class="label">参考均价</p>
+        <p class="label">{{ t('workerPool.metricAvgQuote') }}</p>
         <p class="value">{{ formatMoney(avgQuote) }}</p>
       </article>
     </section>
@@ -156,15 +154,15 @@
     <el-card class="list-card" shadow="never">
       <template #header>
         <div class="section-head">
-          <h2>执行者列表</h2>
-          <span class="count">共 {{ workers.length }} 位</span>
+          <h2>{{ t('workerPool.listTitle') }}</h2>
+          <span class="count">{{ t('workerPool.totalWorkers', { count: workers.length }) }}</span>
         </div>
       </template>
 
       <div v-if="listLoading" class="loading-wrap">
         <el-skeleton :rows="4" animated />
       </div>
-      <el-empty v-else-if="workers.length === 0" description="暂无符合条件的执行者" :image-size="88" />
+      <el-empty v-else-if="workers.length === 0" :description="t('workerPool.empty')" :image-size="88" />
 
       <div v-else class="worker-grid">
         <article v-for="row in workers" :key="row.workerId || row.id" class="worker-card">
@@ -173,7 +171,7 @@
               <h3>{{ row.name }}</h3>
               <p>ID: {{ row.workerId }}</p>
             </div>
-            <el-tag type="success">{{ getCountryLabel(row.country) || '—' }}</el-tag>
+	            <el-tag type="success">{{ getCountryLabel(row.country) || '—' }}</el-tag>
           </div>
 
           <div class="skill-row">
@@ -188,11 +186,11 @@
             </el-tag>
           </div>
 
-          <div class="meta-row">
-            <span>成交单数 {{ row.dealCount }}</span>
-            <span>评分 {{ row.rating.toFixed(1) }}</span>
-            <span>参考报价 {{ formatMoney(getEstimatedAmount(row)) }}</span>
-          </div>
+	          <div class="meta-row">
+	            <span>{{ t('workerPool.deals') }} {{ row.dealCount }}</span>
+	            <span>{{ t('workerPool.rating') }} {{ row.rating.toFixed(1) }}</span>
+	            <span>{{ t('workerPool.estimatedQuote') }} {{ formatMoney(getEstimatedAmount(row)) }}</span>
+	          </div>
 
           <div class="action-row">
             <el-button
@@ -200,10 +198,10 @@
               :disabled="!demandId || !isDemandOwner"
               :loading="Boolean(createLoadingMap[row.workerId])"
               @click="handleCreateOrder(row)"
-            >
-              选择并创建订单
-            </el-button>
-          </div>
+	            >
+	              {{ t('workerPool.createOrder') }}
+	            </el-button>
+	          </div>
         </article>
       </div>
     </el-card>
@@ -214,6 +212,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { getWorkerListApi } from '@/api/worker';
 import { getDemandDetailApi } from '@/api/demand';
 import { createOrderApi } from '@/api/order';
@@ -225,6 +224,7 @@ import { useUserStore } from '@/store/modules/user';
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
+const { t, locale } = useI18n();
 
 const demandId = ref(route.query?.demandId ? Number(route.query.demandId) : 0);
 const listLoading = ref(false);
@@ -240,13 +240,36 @@ const filters = reactive({
   category: '',
 });
 
+const CATEGORY_I18N_KEY_MAP = {
+  '翻译本地化': 'categoryLabel.translationLocalization',
+  '远程助理': 'categoryLabel.remoteAssistant',
+  '视频剪辑': 'categoryLabel.videoEditing',
+  '海外投放': 'categoryLabel.overseasAds',
+  '客服支持': 'categoryLabel.customerSupport',
+  '平面设计': 'categoryLabel.graphicDesign',
+  'UI/UX设计': 'categoryLabel.uiuxDesign',
+  '文案策划': 'categoryLabel.copywriting',
+  '社媒运营': 'categoryLabel.socialMediaOps',
+  'SEO优化': 'categoryLabel.seoOptimization',
+  '网红/KOL合作': 'categoryLabel.kolCollab',
+  '网站开发': 'categoryLabel.webDevelopment',
+  '电商代运营': 'categoryLabel.ecommerceOps',
+  '跨境物流': 'categoryLabel.crossBorderLogistics',
+  '财税服务': 'categoryLabel.financeTax',
+  '海外公司注册': 'categoryLabel.companyRegistration',
+  '法律咨询': 'categoryLabel.legalConsulting',
+  'UI设计': 'categoryLabel.uiDesign',
+  '翻译': 'categoryLabel.translation',
+  'AI服务': 'categoryLabel.aiService',
+};
+
 const categoryOptions = computed(() => {
   const fromDict = Array.isArray(CATEGORY_OPTIONS) ? CATEGORY_OPTIONS : [];
   if (fromDict.length > 0) {
     return fromDict
       .map((item) => ({
         code: String(item?.code || item?.label || '').trim(),
-        label: String(item?.label || item?.code || '').trim(),
+        label: localizeCategoryLabel(String(item?.label || item?.code || '').trim()),
         sort: Number(item?.sort || 0),
         hot: Boolean(item?.hot),
       }))
@@ -256,7 +279,7 @@ const categoryOptions = computed(() => {
   return (Array.isArray(CATEGORY_PRESETS) ? CATEGORY_PRESETS : [])
     .map((label, index) => ({
       code: String(label),
-      label: String(label),
+      label: localizeCategoryLabel(String(label)),
       sort: (index + 1) * 10,
       hot: index < 6,
     }));
@@ -303,6 +326,15 @@ const isDemandOwner = computed(() => {
   return currentUserId.value > 0 && currentUserId.value === demandOwnerId.value;
 });
 
+const demandInfoAlertTitle = computed(() => {
+  if (!demandInfo.value) return '';
+  return t('workerPool.alertCurrentDemand', {
+    id: demandInfo.value.id,
+    country: getCountryLabel(demandInfo.value.targetCountry) || demandInfo.value.targetCountry || '—',
+    category: resolveDemandCategoryLabel(demandInfo.value.category) || '—',
+  });
+});
+
 watch(
   () => route.query.demandId,
   async (value) => {
@@ -321,6 +353,25 @@ function parseCountryExtra(extraJson) {
   }
 }
 
+function localizeCountryLabel(code, fallbackLabel) {
+  const regionCode = String(code || '').trim().toUpperCase();
+  const fallback = String(fallbackLabel || '').trim();
+  if (!regionCode) return fallback;
+  try {
+    const displayNames = new Intl.DisplayNames([locale.value], { type: 'region' });
+    return displayNames.of(regionCode) || fallback || regionCode;
+  } catch {
+    return fallback || regionCode;
+  }
+}
+
+function localizeCategoryLabel(label) {
+  const text = String(label || '').trim();
+  if (!text) return '';
+  const i18nKey = CATEGORY_I18N_KEY_MAP[text];
+  return i18nKey ? t(i18nKey) : text;
+}
+
 async function loadCountries() {
   countryLoading.value = true;
   try {
@@ -329,7 +380,8 @@ async function loadCountries() {
     const mapped = list
       .map((item, index) => {
         const code = String(item?.dict_code || item?.dictCode || '').trim().toUpperCase();
-        const label = String(item?.dict_label || item?.dictLabel || '').trim();
+        const rawLabel = String(item?.dict_label || item?.dictLabel || '').trim();
+        const label = localizeCountryLabel(code, rawLabel);
         const sortNo = Number(item?.sort_no ?? item?.sortNo ?? (index + 1) * 10);
         const extra = parseCountryExtra(item?.extra_json || item?.extraJson || '');
         return {
@@ -354,7 +406,7 @@ async function loadCountries() {
     });
   } catch {
     countryOptions.value = [];
-    ElMessage.error('国家字典加载失败，请稍后重试');
+    ElMessage.error(t('workerPool.countryLoadFailed'));
   } finally {
     countryLoading.value = false;
   }
@@ -440,7 +492,7 @@ async function syncDemandContextAndWorkers() {
       filters.category = demandCategory;
     }
   } catch {
-    demandLoadError.value = '需求信息加载失败，已切换为手动筛选模式';
+    demandLoadError.value = t('workerPool.demandLoadFailed');
   }
   await loadWorkers({ allowDemandFallback: true });
 }
@@ -466,7 +518,7 @@ function getOrderAmount(worker) {
 
 function splitSkills(text) {
   const source = String(text || '').trim();
-  if (!source) return ['未标注'];
+  if (!source) return [t('workerPool.unlabeled')];
   return source
     .split(/[，,]/)
     .map((s) => s.trim())
@@ -482,16 +534,16 @@ function resetFilters() {
 
 async function handleCreateOrder(worker) {
   if (!demandId.value) {
-    ElMessage.warning('缺少 demandId，请先发布需求');
+    ElMessage.warning(t('workerPool.createNeedDemandId'));
     return;
   }
   if (!isDemandOwner.value) {
-    ElMessage.warning('仅需求发布者可以创建订单，请切换账号后再操作');
+    ElMessage.warning(t('workerPool.createOnlyOwner'));
     return;
   }
   const workerId = Number(worker?.workerId || worker?.id || 0);
   if (!workerId) {
-    ElMessage.error('执行者ID无效');
+    ElMessage.error(t('workerPool.invalidWorkerId'));
     return;
   }
 
@@ -504,17 +556,17 @@ async function handleCreateOrder(worker) {
     });
     const orderId = data?.orderId || data?.id || data;
     if (!orderId) {
-      throw new Error('未获取到订单ID');
+      throw new Error(t('workerPool.orderIdMissing'));
     }
-    ElMessage.success('订单创建成功');
+    ElMessage.success(t('workerPool.createSuccess'));
     router.push(`/order/${orderId}`);
   } catch (error) {
     const message = String(error?.message || '').trim();
     if (message.toLowerCase().includes('only demand owner can create order')) {
-      ElMessage.error('仅需求发布者可以创建订单，请切换账号后再操作');
+      ElMessage.error(t('workerPool.createOnlyOwner'));
       return;
     }
-    ElMessage.error(message || '创建订单失败，请稍后重试');
+    ElMessage.error(message || t('workerPool.createFailed'));
   } finally {
     createLoadingMap[workerId] = false;
   }

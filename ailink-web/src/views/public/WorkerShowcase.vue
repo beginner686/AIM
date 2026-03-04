@@ -5,8 +5,8 @@
       <div class="halo halo-b" />
       <div class="hero-inner reveal-up">
         <p class="eyebrow">GLOBAL TALENT POOL</p>
-        <h1>认证执行者展示</h1>
-        <p>按技能与国家筛选候选执行者，登录后可在工作台发起匹配与订单协作。</p>
+        <h1>{{ t('workerShowcase.title') }}</h1>
+        <p>{{ t('workerShowcase.subtitle') }}</p>
       </div>
     </section>
 
@@ -16,20 +16,20 @@
           <el-input
             v-model="queryParams.skillKeyword"
             clearable
-            placeholder="搜索技能关键词（如：SEO、视频剪辑、翻译）"
+            :placeholder="t('workerShowcase.searchPlaceholder')"
             class="search-input"
             @keyup.enter="handleSearch"
           >
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
-          <el-select v-model="queryParams.country" clearable placeholder="国家/地区" class="select-input" @change="handleSearch">
+          <el-select v-model="queryParams.country" clearable :placeholder="t('workerShowcase.countryPlaceholder')" class="select-input" @change="handleSearch">
             <el-option v-for="country in countries" :key="country.value" :label="country.label" :value="country.value" />
           </el-select>
-          <el-button type="primary" class="search-btn" @click="handleSearch">搜索</el-button>
+          <el-button type="primary" class="search-btn" @click="handleSearch">{{ t('workerShowcase.search') }}</el-button>
         </div>
 
         <div class="chips-row">
-          <span>热门国家:</span>
+          <span>{{ t('workerShowcase.hotCountries') }}</span>
           <button
             v-for="country in quickCountries"
             :key="country"
@@ -37,7 +37,7 @@
             :class="{ active: queryParams.country === country }"
             @click="pickCountry(country)"
           >
-            {{ country }}
+            {{ localizeCountryLabel(country) }}
           </button>
         </div>
       </div>
@@ -46,10 +46,10 @@
     <section class="content">
       <header class="result-head reveal-up">
         <div>
-          <h2>可用执行者</h2>
-          <p>{{ workerList.length }} 位已认证人才</p>
+          <h2>{{ t('workerShowcase.resultTitle') }}</h2>
+          <p>{{ t('workerShowcase.resultCount', { count: workerList.length }) }}</p>
         </div>
-        <el-button text @click="clearFilters">清空筛选</el-button>
+        <el-button text @click="clearFilters">{{ t('workerShowcase.clearFilters') }}</el-button>
       </header>
 
       <div v-if="loading" class="loading-grid">
@@ -59,7 +59,7 @@
       <el-empty
         v-else-if="workerList.length === 0"
         class="empty-box"
-        description="未找到匹配的执行者"
+        :description="t('workerShowcase.empty')"
         :image-size="118"
       />
 
@@ -75,10 +75,10 @@
             <div class="avatar">{{ getInitial(item.displayName) }}</div>
             <div class="identity">
               <h3>
-                {{ item.displayName || '执行者' }}
+                {{ item.displayName || t('workerShowcase.executor') }}
                 <el-icon v-if="item.verified === 1" class="verified"><CircleCheckFilled /></el-icon>
               </h3>
-              <p><el-icon><Location /></el-icon>{{ item.country || '未知地区' }}</p>
+              <p><el-icon><Location /></el-icon>{{ localizeCountryLabel(item.country) || t('workerShowcase.unknownRegion') }}</p>
             </div>
             <div class="rating">
               <el-icon><StarFilled /></el-icon>
@@ -88,15 +88,15 @@
 
           <div class="skills">
             <span v-for="tag in parseTags(item.skillTags)" :key="tag" class="skill-tag">{{ tag }}</span>
-            <span v-if="parseTags(item.skillTags).length === 0" class="skill-tag">未标注技能</span>
+            <span v-if="parseTags(item.skillTags).length === 0" class="skill-tag">{{ t('workerShowcase.unlabeledSkills') }}</span>
           </div>
 
           <div class="meta">
             <div class="price">
-              <p>参考报价</p>
+              <p>{{ t('workerShowcase.referenceQuote') }}</p>
               <strong>¥{{ formatMoney(item.priceMin) }} - ¥{{ formatMoney(item.priceMax) }}</strong>
             </div>
-            <button class="contact-btn" @click.stop="handleCardClick">登录后联系</button>
+            <button class="contact-btn" @click.stop="handleCardClick">{{ t('workerShowcase.contactAfterLogin') }}</button>
           </div>
         </article>
       </div>
@@ -108,12 +108,14 @@
 import { onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { CircleCheckFilled, Location, Search, StarFilled } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
 import { getPublicWorkersApi } from '@/api/public';
 import { COUNTRY_PRESETS } from '@/dicts';
 import { openAuthModal } from '@/composables/useAuthModal';
 
 const route = useRoute();
 const router = useRouter();
+const { t, locale } = useI18n();
 const loading = ref(false);
 const workerList = ref([]);
 
@@ -122,7 +124,7 @@ const queryParams = reactive({
   country: String(route.query.country || ''),
 });
 
-const countries = COUNTRY_PRESETS.map((label) => ({ label, value: label }));
+const countries = COUNTRY_PRESETS.map((label) => ({ label: localizeCountryLabel(label), value: label }));
 const quickCountries = COUNTRY_PRESETS.slice(0, 8);
 
 async function fetchWorkers() {
@@ -167,6 +169,20 @@ function handleCardClick() {
   openAuthModal('login');
 }
 
+function localizeCountryLabel(country) {
+  const text = String(country || '').trim();
+  const code = text.toUpperCase();
+  if (/^[A-Z]{2}$/.test(code)) {
+    try {
+      const displayNames = new Intl.DisplayNames([locale.value], { type: 'region' });
+      return displayNames.of(code) || text;
+    } catch {
+      return text;
+    }
+  }
+  return text;
+}
+
 function parseTags(source) {
   return String(source || '')
     .split(/[，,]/)
@@ -188,7 +204,7 @@ function formatRating(value) {
 
 function formatMoney(value) {
   const n = Number(value || 0);
-  return n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return n.toLocaleString(locale.value, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 onMounted(() => {

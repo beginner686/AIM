@@ -2,31 +2,31 @@
   <div class="order-list-page">
     <section class="hero">
       <div class="hero-copy">
-        <p class="hero-kicker">Order Center</p>
-        <h1>我的订单</h1>
-        <p>查看每一笔订单的金额拆分、服务费状态和履约进度，点击可进入详情页。</p>
+        <p class="hero-kicker">{{ t('orderList.kicker') }}</p>
+        <h1>{{ t('orderList.title') }}</h1>
+        <p>{{ t('orderList.subtitle') }}</p>
       </div>
       <div class="hero-actions">
-        <el-button @click="router.push('/worker-pool')">去创建订单</el-button>
-        <el-button type="primary" :icon="Refresh" @click="loadOrders">刷新订单</el-button>
+        <el-button @click="router.push('/worker-pool')">{{ t('orderList.createOrder') }}</el-button>
+        <el-button type="primary" :icon="Refresh" @click="loadOrders">{{ t('orderList.refreshOrders') }}</el-button>
       </div>
     </section>
 
     <section class="kpi-grid">
       <article class="kpi-card">
-        <p class="kpi-label">订单总数</p>
+        <p class="kpi-label">{{ t('orderList.kpiTotalOrders') }}</p>
         <p class="kpi-value">{{ orders.length }}</p>
       </article>
       <article class="kpi-card">
-        <p class="kpi-label">履约中</p>
+        <p class="kpi-label">{{ t('orderList.kpiActive') }}</p>
         <p class="kpi-value">{{ activeCount }}</p>
       </article>
       <article class="kpi-card">
-        <p class="kpi-label">已完成</p>
+        <p class="kpi-label">{{ t('orderList.kpiCompleted') }}</p>
         <p class="kpi-value">{{ completedCount }}</p>
       </article>
       <article class="kpi-card">
-        <p class="kpi-label">总成交额</p>
+        <p class="kpi-label">{{ t('orderList.kpiTotalAmount') }}</p>
         <p class="kpi-value">¥{{ formatMoney(totalAmount) }}</p>
       </article>
     </section>
@@ -36,11 +36,11 @@
         <el-input
           v-model.trim="keyword"
           clearable
-          placeholder="搜索订单ID / 需求ID / 执行者ID"
+          :placeholder="t('orderList.searchPlaceholder')"
           style="width: 260px;"
         />
-        <el-select v-model="filterStatus" clearable placeholder="订单状态" style="width: 160px;">
-          <el-option label="全部状态" value="" />
+        <el-select v-model="filterStatus" clearable :placeholder="t('orderList.filterOrderStatus')" style="width: 160px;">
+          <el-option :label="t('orderList.allStatus')" value="" />
           <el-option
             v-for="item in orderStatusOptions"
             :key="item.value"
@@ -48,8 +48,8 @@
             :value="item.value"
           />
         </el-select>
-        <el-select v-model="filterPayStatus" clearable placeholder="支付状态" style="width: 160px;">
-          <el-option label="全部支付状态" value="" />
+        <el-select v-model="filterPayStatus" clearable :placeholder="t('orderList.filterPayStatus')" style="width: 160px;">
+          <el-option :label="t('orderList.allPayStatus')" value="" />
           <el-option
             v-for="item in payStatusOptions"
             :key="item.value"
@@ -57,10 +57,10 @@
             :value="item.value"
           />
         </el-select>
-        <el-button @click="clearFilters">重置筛选</el-button>
+        <el-button @click="clearFilters">{{ t('orderList.resetFilters') }}</el-button>
       </div>
       <p class="filter-hint">
-        当前显示 {{ filteredOrders.length }} / {{ orders.length }} 笔订单，完成率 {{ completionRate }}%
+        {{ t('orderList.filterHint', { shown: filteredOrders.length, total: orders.length, rate: completionRate }) }}
       </p>
     </section>
 
@@ -68,7 +68,7 @@
       <div v-if="loading" class="panel-loading">
         <el-skeleton :rows="6" animated />
       </div>
-      <el-empty v-else-if="filteredOrders.length === 0" description="暂无订单记录" :image-size="96" />
+      <el-empty v-else-if="filteredOrders.length === 0" :description="t('orderList.empty')" :image-size="96" />
       <div v-else class="order-list">
         <article
           v-for="order in filteredOrders"
@@ -76,14 +76,14 @@
           class="order-card"
           @click="router.push(`/order/${order.id}`)"
         >
-          <div class="card-head">
-            <div class="head-main">
-              <h3>订单 #{{ order.id }}</h3>
-              <p>
-                需求ID {{ order.demandId || '—' }} · 执行者ID
-                {{ order.workerProfileId || order.workerId || order.workerUserId || '—' }}
-              </p>
-            </div>
+            <div class="card-head">
+              <div class="head-main">
+                <h3>{{ t('orderList.orderWithId', { id: order.id }) }}</h3>
+                <p>
+                  {{ t('orderList.demandId') }} {{ order.demandId || '—' }} · {{ t('orderList.workerId') }}
+                  {{ order.workerProfileId || order.workerId || order.workerUserId || '—' }}
+                </p>
+              </div>
             <div class="head-tags">
               <el-tag size="small" :type="orderStatusType(order.status)">
                 {{ orderStatusText(order.status) }}
@@ -94,26 +94,26 @@
             </div>
           </div>
 
-          <div class="amount-grid">
-            <div>
-              <span>订单金额</span>
-              <strong>¥{{ formatMoney(order.amount) }}</strong>
+            <div class="amount-grid">
+              <div>
+                <span>{{ t('orderList.amountOrder') }}</span>
+                <strong>¥{{ formatMoney(order.amount) }}</strong>
+              </div>
+              <div>
+                <span>{{ t('orderList.amountPlatformFee') }}</span>
+                <strong>¥{{ formatMoney(order.platformFee) }}</strong>
+              </div>
+              <div>
+                <span>{{ t('orderList.amountWorkerIncome') }}</span>
+                <strong>¥{{ formatMoney(order.workerIncome) }}</strong>
+              </div>
             </div>
-            <div>
-              <span>平台抽成</span>
-              <strong>¥{{ formatMoney(order.platformFee) }}</strong>
-            </div>
-            <div>
-              <span>执行者收入</span>
-              <strong>¥{{ formatMoney(order.workerIncome) }}</strong>
-            </div>
-          </div>
 
-          <div class="card-foot">
-            <span>服务费状态：{{ serviceFeeText(order) }}</span>
-            <span>{{ formatDate(order.createdTime) }}</span>
-          </div>
-        </article>
+            <div class="card-foot">
+              <span>{{ t('orderList.serviceFeeStatus') }}{{ serviceFeeText(order) }}</span>
+              <span>{{ formatDate(order.createdTime) }}</span>
+            </div>
+          </article>
       </div>
     </section>
   </div>
@@ -123,6 +123,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Refresh } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
 import { getMyOrderListApi } from '@/api/order';
 import {
   ORDER_ACTIVE_STATUSES,
@@ -140,6 +141,7 @@ import {
 import { formatMoney } from '@/utils/format';
 
 const router = useRouter();
+const { t } = useI18n();
 const loading = ref(true);
 const orders = ref([]);
 const filterStatus = ref('');
@@ -211,13 +213,13 @@ function payStatusType(status) {
 function serviceFeeText(order) {
   const status = order?.status;
   const feeStatus = order?.serviceFeeStatus;
-  if (ORDER_CLOSED_STATUSES.includes(status)) return '订单已关闭';
-  if (status === 'WAIT_WORKER_ACCEPT' || status === 'SERVICE_FEE_PAID') return '已支付，待执行者接单';
-  if (status === 'SERVICE_FEE_REQUIRED' || status === 'CREATED') return '待支付服务费';
-  if (ORDER_COMPLETED_STATUSES.includes(status)) return '服务费已支付';
-  if (feeStatus === PAY_STATUS.PAID || feeStatus === 'PAID') return '服务费已支付';
-  if (ORDER_ACTIVE_STATUSES.includes(status)) return '服务费处理中';
-  return '未开始';
+  if (ORDER_CLOSED_STATUSES.includes(status)) return t('orderList.feeClosed');
+  if (status === 'WAIT_WORKER_ACCEPT' || status === 'SERVICE_FEE_PAID') return t('orderList.feePaidWaiting');
+  if (status === 'SERVICE_FEE_REQUIRED' || status === 'CREATED') return t('orderList.feeRequired');
+  if (ORDER_COMPLETED_STATUSES.includes(status)) return t('orderList.feePaid');
+  if (feeStatus === PAY_STATUS.PAID || feeStatus === 'PAID') return t('orderList.feePaid');
+  if (ORDER_ACTIVE_STATUSES.includes(status)) return t('orderList.feeProcessing');
+  return t('orderList.feeNotStarted');
 }
 
 function formatDate(value) {

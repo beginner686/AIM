@@ -5,10 +5,8 @@
       <div class="glow glow-b" />
       <div class="hero-inner reveal-up">
         <p class="eyebrow">DEMAND EXPLORER</p>
-        <h1>全球需求大厅</h1>
-        <p>
-          快速浏览公开需求，按国家、类目和关键词筛选。登录后可进入工作台完成选人、下单与履约流程。
-        </p>
+        <h1>{{ t('demandHall.title') }}</h1>
+        <p>{{ t('demandHall.subtitle') }}</p>
       </div>
     </section>
 
@@ -17,24 +15,24 @@
         <div class="filter-row">
           <el-input
             v-model="queryParams.keyword"
-            placeholder="搜索需求关键词（如：本地化、广告投放）"
+            :placeholder="t('demandHall.searchPlaceholder')"
             clearable
             class="search-input"
             @keyup.enter="handleSearch"
           >
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
-          <el-select v-model="queryParams.category" placeholder="服务类目" clearable class="select-input" @change="handleSearch">
+          <el-select v-model="queryParams.category" :placeholder="t('demandHall.categoryPlaceholder')" clearable class="select-input" @change="handleSearch">
             <el-option v-for="cat in categories" :key="cat.value" :label="cat.label" :value="cat.value" />
           </el-select>
-          <el-select v-model="queryParams.country" placeholder="国家/地区" clearable class="select-input" @change="handleSearch">
+          <el-select v-model="queryParams.country" :placeholder="t('demandHall.countryPlaceholder')" clearable class="select-input" @change="handleSearch">
             <el-option v-for="country in countries" :key="country.value" :label="country.label" :value="country.value" />
           </el-select>
-          <el-button type="primary" class="search-btn" @click="handleSearch">搜索</el-button>
+          <el-button type="primary" class="search-btn" @click="handleSearch">{{ t('demandHall.search') }}</el-button>
         </div>
 
         <div class="quick-row">
-          <span>热门类目:</span>
+          <span>{{ t('demandHall.hotCategories') }}</span>
           <button
             v-for="item in quickCategories"
             :key="item"
@@ -42,7 +40,7 @@
             :class="{ active: queryParams.category === item }"
             @click="pickCategory(item)"
           >
-            {{ item }}
+            {{ displayCategory(item) }}
           </button>
         </div>
       </div>
@@ -51,10 +49,10 @@
     <section class="content">
       <header class="result-head reveal-up">
         <div>
-          <h2>公开需求列表</h2>
-          <p>共 {{ demandList.length }} 条结果</p>
+          <h2>{{ t('demandHall.resultTitle') }}</h2>
+          <p>{{ t('demandHall.resultCount', { count: demandList.length }) }}</p>
         </div>
-        <el-button text @click="clearFilters">清空筛选</el-button>
+        <el-button text @click="clearFilters">{{ t('demandHall.clearFilters') }}</el-button>
       </header>
 
       <div v-if="loading" class="loading-grid">
@@ -66,7 +64,7 @@
       <el-empty
         v-else-if="demandList.length === 0"
         class="empty-box"
-        description="没有找到符合筛选条件的需求"
+        :description="t('demandHall.empty')"
         :image-size="120"
       />
 
@@ -79,13 +77,13 @@
           @click="handleCardClick"
         >
           <div class="card-top">
-            <span class="category">{{ item.category || '未分类' }}</span>
+            <span class="category">{{ displayCategory(item.category) || t('demandHall.uncategorized') }}</span>
             <span class="budget">¥{{ formatMoney(item.budget) }}</span>
           </div>
           <h3>{{ formatTitle(item.description) }}</h3>
           <p>{{ formatDesc(item.description) }}</p>
           <div class="card-foot">
-            <span><el-icon><Location /></el-icon>{{ item.targetCountry || 'Global' }}</span>
+            <span><el-icon><Location /></el-icon>{{ displayCountry(item.targetCountry) || 'Global' }}</span>
             <span><el-icon><Clock /></el-icon>{{ formatDate(item.createdTime) }}</span>
           </div>
           <div class="card-actions">
@@ -96,7 +94,7 @@
               :disabled="Boolean(applyLoadingMap[item.id])"
               @click.stop="handleApply(item)"
             >
-              {{ applyLoadingMap[item.id] ? '提交中...' : '我来申请' }}
+              {{ applyLoadingMap[item.id] ? t('demandHall.submitting') : t('demandHall.applyNow') }}
             </button>
             <button
               v-else-if="!isLogin"
@@ -104,9 +102,9 @@
               class="apply-btn secondary"
               @click.stop="handleCardClick"
             >
-              登录后申请
+              {{ t('demandHall.applyAfterLogin') }}
             </button>
-            <span v-else class="login-hint">通过执行者审核后可主动申请</span>
+            <span v-else class="login-hint">{{ t('demandHall.requireWorkerApproved') }}</span>
           </div>
         </article>
       </div>
@@ -119,6 +117,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Clock, Location, Search } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import { getPublicDemandsApi } from '@/api/public';
 import { CATEGORY_PRESETS, COUNTRY_PRESETS } from '@/dicts';
 import { openAuthModal } from '@/composables/useAuthModal';
@@ -128,6 +127,7 @@ import { submitDemandApplyApi } from '@/api/demandApply';
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+const { t, locale } = useI18n();
 const loading = ref(false);
 const demandList = ref([]);
 const applyLoadingMap = reactive({});
@@ -138,8 +138,30 @@ const queryParams = reactive({
   country: String(route.query.country || ''),
 });
 
-const categories = CATEGORY_PRESETS.map((label) => ({ label, value: label }));
-const countries = COUNTRY_PRESETS.map((label) => ({ label, value: label }));
+const CATEGORY_I18N_KEY_MAP = {
+  '翻译本地化': 'categoryLabel.translationLocalization',
+  '远程助理': 'categoryLabel.remoteAssistant',
+  '视频剪辑': 'categoryLabel.videoEditing',
+  '海外投放': 'categoryLabel.overseasAds',
+  '客服支持': 'categoryLabel.customerSupport',
+  '平面设计': 'categoryLabel.graphicDesign',
+  'UI/UX设计': 'categoryLabel.uiuxDesign',
+  '文案策划': 'categoryLabel.copywriting',
+  '社媒运营': 'categoryLabel.socialMediaOps',
+  'SEO优化': 'categoryLabel.seoOptimization',
+  '网红/KOL合作': 'categoryLabel.kolCollab',
+  '网站开发': 'categoryLabel.webDevelopment',
+  '电商代运营': 'categoryLabel.ecommerceOps',
+  '跨境物流': 'categoryLabel.crossBorderLogistics',
+  '财税服务': 'categoryLabel.financeTax',
+  '海外公司注册': 'categoryLabel.companyRegistration',
+  '法律咨询': 'categoryLabel.legalConsulting',
+  'UI设计': 'categoryLabel.uiDesign',
+  '翻译': 'categoryLabel.translation',
+  'AI服务': 'categoryLabel.aiService',
+};
+const categories = CATEGORY_PRESETS.map((label) => ({ label: localizeCategoryLabel(label), value: label }));
+const countries = COUNTRY_PRESETS.map((label) => ({ label: localizeCountryLabel(label), value: label }));
 const quickCategories = CATEGORY_PRESETS.slice(0, 8);
 const isLogin = computed(() => userStore.isLogin);
 const canApplyDemand = computed(() => {
@@ -195,13 +217,42 @@ function handleCardClick() {
   }
 }
 
+function localizeCategoryLabel(label) {
+  const text = String(label || '').trim();
+  if (!text) return '';
+  const i18nKey = CATEGORY_I18N_KEY_MAP[text];
+  return i18nKey ? t(i18nKey) : text;
+}
+
+function localizeCountryLabel(country) {
+  const text = String(country || '').trim();
+  const code = text.toUpperCase();
+  if (/^[A-Z]{2}$/.test(code)) {
+    try {
+      const displayNames = new Intl.DisplayNames([locale.value], { type: 'region' });
+      return displayNames.of(code) || text;
+    } catch {
+      return text;
+    }
+  }
+  return text;
+}
+
+function displayCategory(value) {
+  return localizeCategoryLabel(value);
+}
+
+function displayCountry(value) {
+  return localizeCountryLabel(value);
+}
+
 async function handleApply(item) {
   if (!isLogin.value) {
     openAuthModal('login', { redirect: route.fullPath });
     return;
   }
   if (!canApplyDemand.value) {
-    ElMessage.warning('请先在个人中心完成执行者审核');
+    ElMessage.warning(t('demandHall.needWorkerApproved'));
     return;
   }
   const demandId = Number(item?.id || 0);
@@ -209,17 +260,17 @@ async function handleApply(item) {
 
   try {
     const defaultQuote = Number(item?.budget || 0);
-    const { value } = await ElMessageBox.prompt('请输入你的报价（最多两位小数）', '申请该需求', {
-      confirmButtonText: '提交申请',
-      cancelButtonText: '取消',
-      inputPlaceholder: '例如：1200',
+    const { value } = await ElMessageBox.prompt(t('demandHall.applyPromptMessage'), t('demandHall.applyPromptTitle'), {
+      confirmButtonText: t('demandHall.applyConfirm'),
+      cancelButtonText: t('demandHall.cancel'),
+      inputPlaceholder: t('demandHall.applyPlaceholder'),
       inputValue: defaultQuote > 0 ? String(defaultQuote) : '',
       inputPattern: /^(?:[1-9]\d*|0)(?:\.\d{1,2})?$/,
-      inputErrorMessage: '请输入合法金额',
+      inputErrorMessage: t('demandHall.applyAmountInvalid'),
     });
     const quoteAmount = Number(String(value || '').trim());
     if (!Number.isFinite(quoteAmount) || quoteAmount <= 0) {
-      ElMessage.warning('报价必须大于 0');
+      ElMessage.warning(t('demandHall.applyAmountGtZero'));
       return;
     }
     applyLoadingMap[demandId] = true;
@@ -227,10 +278,10 @@ async function handleApply(item) {
       quoteAmount,
       applyNote: '',
     });
-    ElMessage.success('申请已提交，请等待需求方处理');
+    ElMessage.success(t('demandHall.applySuccess'));
   } catch (error) {
     if (error !== 'cancel' && error !== 'close') {
-      ElMessage.error(error?.message || '申请提交失败');
+      ElMessage.error(error?.message || t('demandHall.applyFailed'));
     }
   } finally {
     applyLoadingMap[demandId] = false;
@@ -238,13 +289,13 @@ async function handleApply(item) {
 }
 
 function formatTitle(desc) {
-  if (!desc) return '未命名需求';
+  if (!desc) return t('demandHall.untitled');
   const match = desc.match(/^\[(.*?)\]/);
-  return match?.[1] || '需求详情';
+  return match?.[1] || t('demandHall.detailTitle');
 }
 
 function formatDesc(desc) {
-  if (!desc) return '暂无描述';
+  if (!desc) return t('demandHall.noDesc');
   const match = desc.match(/^\[.*?\]\s*(.*)/);
   const text = (match?.[1] || desc).trim();
   if (text.length <= 120) return text;
@@ -260,7 +311,7 @@ function formatDate(value) {
 
 function formatMoney(value) {
   const n = Number(value || 0);
-  return n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return n.toLocaleString(locale.value, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 onMounted(() => {

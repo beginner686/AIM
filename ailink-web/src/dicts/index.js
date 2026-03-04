@@ -1,4 +1,5 @@
 import { getPublicDictItemsApi } from '@/api/dict';
+import i18n from '@/locales';
 
 const DICT_CACHE_KEY = 'ailink.dict.center.cache.v1';
 const DICT_TYPES = ['CATEGORY', 'COUNTRY', 'USER_ROLE', 'DEMAND_STATUS', 'ORDER_STATUS', 'PAY_STATUS'];
@@ -291,9 +292,27 @@ function pickDictItem(dict, key) {
   return dict[key] || null;
 }
 
-export function getDictLabel(dict, key, fallback = '未知') {
+function getI18nText(key) {
+  try {
+    if (i18n?.global?.te?.(key)) {
+      return i18n.global.t(key);
+    }
+  } catch {
+    // ignore i18n lookup errors
+  }
+  return '';
+}
+
+function getI18nDictLabel(namespace, key) {
+  const code = String(key || '').trim();
+  if (!code) return '';
+  return getI18nText(`dict.${namespace}.${code}`);
+}
+
+export function getDictLabel(dict, key, fallback = '') {
   const item = pickDictItem(dict, key);
-  return item?.label || key || fallback;
+  const fallbackText = fallback || getI18nText('common.unknown') || 'Unknown';
+  return item?.label || key || fallbackText;
 }
 
 export function getDictTag(dict, key, fallback = '') {
@@ -309,7 +328,7 @@ export function toSelectOptions(dict) {
 }
 
 export function getDemandStatusLabel(status) {
-  return getDictLabel(DEMAND_STATUS_DICT, status);
+  return getI18nDictLabel('demandStatus', status) || getDictLabel(DEMAND_STATUS_DICT, status);
 }
 
 export function getDemandStatusTag(status) {
@@ -317,7 +336,7 @@ export function getDemandStatusTag(status) {
 }
 
 export function getOrderStatusLabel(status) {
-  return getDictLabel(ORDER_STATUS_DICT, status);
+  return getI18nDictLabel('orderStatus', status) || getDictLabel(ORDER_STATUS_DICT, status);
 }
 
 export function getOrderStatusTag(status) {
@@ -325,7 +344,7 @@ export function getOrderStatusTag(status) {
 }
 
 export function getPayStatusLabel(status) {
-  return getDictLabel(PAY_STATUS_DICT, status, '—');
+  return getI18nDictLabel('payStatus', status) || getDictLabel(PAY_STATUS_DICT, status, '—');
 }
 
 export function getPayStatusTag(status) {
@@ -333,7 +352,8 @@ export function getPayStatusTag(status) {
 }
 
 export function getRoleLabel(role) {
-  return getDictLabel(USER_ROLE_DICT, role, '用户');
+  return getI18nDictLabel('userRole', role)
+    || getDictLabel(USER_ROLE_DICT, role, getI18nText('dict.userRole.USER') || 'User');
 }
 
 export function getRoleTag(role) {

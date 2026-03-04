@@ -2,26 +2,26 @@
   <div class="home-page">
     <section class="hero">
       <div class="hero-copy">
-        <p class="hero-kicker">AI-Link Global Workforce Platform</p>
-        <h1 class="hero-title">{{ greeting }}，{{ userStore.userInfo?.username || '用户' }}</h1>
-        <p class="hero-sub">
-          用托管交易保障跨国协作，覆盖发布需求、执行匹配、订单履约、收益结算的完整闭环。
-        </p>
+        <p class="hero-kicker">{{ t('dashboard.kicker') }}</p>
+        <h1 class="hero-title">
+          {{ t('dashboard.greetingLine', { greeting, username: userStore.userInfo?.username || t('dashboard.user') }) }}
+        </h1>
+        <p class="hero-sub">{{ t('dashboard.heroSub') }}</p>
         <div class="hero-tags">
-          <span class="chip">覆盖国家 {{ countryCount }}</span>
-          <span class="chip">订单完成率 {{ completionRate }}%</span>
-          <span class="chip">平台抽成 {{ formatMoney(platformRevenue) }}</span>
+          <span class="chip">{{ t('dashboard.countryCover') }} {{ countryCount }}</span>
+          <span class="chip">{{ t('dashboard.completionRate') }} {{ completionRate }}%</span>
+          <span class="chip">{{ t('dashboard.platformRevenue') }} {{ formatMoney(platformRevenue) }}</span>
         </div>
       </div>
 
       <div class="hero-actions">
         <el-button type="primary" size="large" @click="$router.push('/publish-demand')">
           <el-icon><Plus /></el-icon>
-          发布跨国需求
+          {{ t('dashboard.publishDemandBtn') }}
         </el-button>
         <el-button size="large" @click="$router.push('/worker-pool')">
           <el-icon><Search /></el-icon>
-          浏览执行者资源池
+          {{ t('dashboard.browseWorkerBtn') }}
         </el-button>
       </div>
     </section>
@@ -42,14 +42,14 @@
     <section class="panel-grid">
       <article class="panel">
         <header class="panel-header">
-          <h2>最新需求</h2>
-          <el-button link type="primary" @click="$router.push('/publish-demand')">继续发布</el-button>
+          <h2>{{ t('dashboard.latestDemands') }}</h2>
+          <el-button link type="primary" @click="$router.push('/publish-demand')">{{ t('dashboard.continuePub') }}</el-button>
         </header>
 
         <div v-if="loading" class="panel-loading">
           <el-skeleton :rows="4" animated />
         </div>
-        <el-empty v-else-if="latestDemands.length === 0" description="暂无需求记录" :image-size="72" />
+        <el-empty v-else-if="latestDemands.length === 0" :description="t('dashboard.noDemands')" :image-size="72" />
 
         <ul v-else class="demand-list">
           <li
@@ -60,13 +60,13 @@
             @click="handleDemandMatch(item)"
           >
             <div class="item-head">
-              <span class="title">{{ item.category || '未分类' }}</span>
+              <span class="title">{{ item.category || t('dashboard.noCategory') }}</span>
               <el-tag size="small" :type="demandStatusType(item.status)">{{ demandStatusText(item.status) }}</el-tag>
             </div>
-            <p class="desc">{{ item.description || '暂无描述' }}</p>
+            <p class="desc">{{ item.description || t('dashboard.noDesc') }}</p>
             <div class="meta">
               <span>{{ item.targetCountry || '—' }}</span>
-              <span>预算 {{ formatMoney(item.budget) }}</span>
+              <span>{{ t('dashboard.budget') }} {{ formatMoney(item.budget) }}</span>
               <span>{{ formatDate(item.createdTime) }}</span>
             </div>
           </li>
@@ -75,25 +75,25 @@
 
       <article class="panel">
         <header class="panel-header">
-          <h2>我的订单</h2>
-          <el-button link type="primary" @click="$router.push('/orders')">查看全部</el-button>
+          <h2>{{ t('dashboard.myOrders') }}</h2>
+          <el-button link type="primary" @click="$router.push('/orders')">{{ t('dashboard.viewAll') }}</el-button>
         </header>
 
         <div v-if="loading" class="panel-loading">
           <el-skeleton :rows="4" animated />
         </div>
-        <el-empty v-else-if="latestOrders.length === 0" description="暂无订单记录" :image-size="72" />
+        <el-empty v-else-if="latestOrders.length === 0" :description="t('dashboard.noOrders')" :image-size="72" />
 
         <ul v-else class="order-list">
           <li v-for="order in latestOrders" :key="order.id" class="order-item" @click="$router.push(`/order/${order.id}`)">
             <div class="item-head">
-              <span class="title">订单 #{{ order.id }}</span>
+              <span class="title">{{ t('dashboard.orderWithId', { id: order.id }) }}</span>
               <el-tag size="small" :type="orderStatusType(order.status)">{{ orderStatusText(order.status) }}</el-tag>
             </div>
             <div class="order-amount-row">
               <span class="amount">{{ formatMoney(order.amount) }}</span>
-              <span class="sub">平台抽成 {{ formatMoney(order.platformFee) }}</span>
-              <span class="sub">执行者收入 {{ formatMoney(order.workerIncome) }}</span>
+              <span class="sub">{{ t('dashboard.platformFee') }} {{ formatMoney(order.platformFee) }}</span>
+              <span class="sub">{{ t('dashboard.workerIncome') }} {{ formatMoney(order.workerIncome) }}</span>
             </div>
             <div class="meta">
               <el-tag size="small" type="info">{{ payStatusText(order.payStatus) }}</el-tag>
@@ -110,6 +110,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { Plus, Search, Document, ShoppingCart, DataLine, Finished } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/store/modules/user';
 import { getDemandListApi, getMyDemandListApi } from '@/api/demand';
 import { getMyOrderListApi } from '@/api/order';
@@ -127,6 +128,7 @@ import { formatMoney } from '@/utils/format';
 
 const userStore = useUserStore();
 const router = useRouter();
+const { t } = useI18n();
 const loading = ref(true);
 const demands = ref([]);
 const myDemands = ref([]);
@@ -134,11 +136,11 @@ const myOrders = ref([]);
 
 const greeting = computed(() => {
   const hour = new Date().getHours();
-  if (hour < 6) return '夜深了';
-  if (hour < 12) return '早上好';
-  if (hour < 14) return '中午好';
-  if (hour < 18) return '下午好';
-  return '晚上好';
+  if (hour < 6) return t('dashboard.greetNight');
+  if (hour < 12) return t('dashboard.greetMorning');
+  if (hour < 14) return t('dashboard.greetNoon');
+  if (hour < 18) return t('dashboard.greetAfternoon');
+  return t('dashboard.greetEvening');
 });
 
 const latestDemands = computed(() => (Array.isArray(demands.value) ? demands.value.slice(0, 5) : []));
@@ -177,36 +179,36 @@ const countryCount = computed(() => {
 const kpiCards = computed(() => [
   {
     key: 'demand',
-    label: '我的需求',
+    label: t('dashboard.myDemands'),
     value: myDemands.value.length,
-    foot: '待匹配与履约需求总数',
+    foot: t('dashboard.demandFoot'),
     icon: Document,
     color: '#0d9488',
     bg: 'rgba(13, 148, 136, 0.12)',
   },
   {
     key: 'order',
-    label: '我的订单',
+    label: t('dashboard.myOrders'),
     value: myOrders.value.length,
-    foot: '订单全流程可追踪',
+    foot: t('dashboard.orderFoot'),
     icon: ShoppingCart,
     color: '#0284c7',
     bg: 'rgba(2, 132, 199, 0.12)',
   },
   {
     key: 'active',
-    label: '履约中',
+    label: t('dashboard.active'),
     value: activeOrderCount.value,
-    foot: '进行中/托管中/争议中',
+    foot: t('dashboard.activeFoot'),
     icon: DataLine,
     color: '#ea580c',
     bg: 'rgba(234, 88, 12, 0.12)',
   },
   {
     key: 'gmv',
-    label: '总成交额',
+    label: t('dashboard.gmv'),
     value: formatMoney(totalAmount.value),
-    foot: `完成率 ${completionRate.value}%`,
+    foot: t('dashboard.gmvFoot', { rate: completionRate.value }),
     icon: Finished,
     color: '#15803d',
     bg: 'rgba(21, 128, 61, 0.12)',

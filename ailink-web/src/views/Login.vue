@@ -10,38 +10,38 @@
           <img src="/brand-logo.png" alt="AI-Link" />
           <span>AI-Link</span>
         </div>
-        <h2>跨境任务协作账户中心</h2>
-        <p>登录后可进入工作台完成需求发布、执行者筛选、订单托管与验收。</p>
+        <h2>{{ t('auth.asideTitle') }}</h2>
+        <p>{{ t('auth.asideDesc') }}</p>
         <ul>
-          <li>支付后进入平台托管流程</li>
-          <li>执行者接单后才开启履约节点</li>
-          <li>状态全程可追踪、可回溯</li>
+          <li>{{ t('auth.feature1') }}</li>
+          <li>{{ t('auth.feature2') }}</li>
+          <li>{{ t('auth.feature3') }}</li>
         </ul>
-        <RouterLink to="/" class="back-link">返回前台首页</RouterLink>
+        <RouterLink to="/" class="back-link">{{ t('auth.backHome') }}</RouterLink>
       </aside>
 
       <section class="auth-main">
         <header class="main-head">
-          <p>ACCOUNT CENTER</p>
-          <h1>登录 / 注册</h1>
+          <p>{{ t('auth.welcome') }}</p>
+          <h1>{{ t('auth.heading') }}</h1>
         </header>
 
         <el-tabs v-model="activeTab" stretch>
-          <el-tab-pane label="登录" name="login">
+          <el-tab-pane :label="t('auth.tabLogin')" name="login">
             <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" label-position="top" @keyup.enter="handleLogin">
-              <el-form-item prop="username" label="用户名">
-                <el-input v-model="loginForm.username" placeholder="请输入用户名" size="large" />
+              <el-form-item prop="username" :label="t('auth.username')">
+                <el-input v-model="loginForm.username" :placeholder="t('auth.usernamePlaceholder')" size="large" />
               </el-form-item>
-              <el-form-item prop="password" label="密码">
-                <el-input v-model="loginForm.password" type="password" show-password placeholder="请输入密码" size="large" />
+              <el-form-item prop="password" :label="t('auth.password')">
+                <el-input v-model="loginForm.password" type="password" show-password :placeholder="t('auth.passwordPlaceholder')" size="large" />
               </el-form-item>
               <el-button type="primary" size="large" :loading="loginLoading" class="full-btn" @click="handleLogin">
-                登录并进入工作台
+                {{ t('auth.loginBtn') }}
               </el-button>
             </el-form>
           </el-tab-pane>
 
-          <el-tab-pane label="注册" name="register">
+          <el-tab-pane :label="t('auth.tabRegister')" name="register">
             <el-form
               ref="registerFormRef"
               :model="registerForm"
@@ -49,23 +49,23 @@
               label-position="top"
               @keyup.enter="handleRegister"
             >
-              <el-form-item prop="username" label="用户名">
-                <el-input v-model="registerForm.username" placeholder="请输入用户名" size="large" />
+              <el-form-item prop="username" :label="t('auth.username')">
+                <el-input v-model="registerForm.username" :placeholder="t('auth.usernamePlaceholder')" size="large" />
               </el-form-item>
-              <el-form-item prop="password" label="密码">
-                <el-input v-model="registerForm.password" type="password" show-password placeholder="请输入密码" size="large" />
+              <el-form-item prop="password" :label="t('auth.password')">
+                <el-input v-model="registerForm.password" type="password" show-password :placeholder="t('auth.passwordPlaceholder')" size="large" />
               </el-form-item>
-              <el-form-item prop="confirmPassword" label="确认密码">
+              <el-form-item prop="confirmPassword" :label="t('auth.confirmPassword')">
                 <el-input
                   v-model="registerForm.confirmPassword"
                   type="password"
                   show-password
-                  placeholder="请再次输入密码"
+                  :placeholder="t('auth.confirmPasswordPlaceholder')"
                   size="large"
                 />
               </el-form-item>
               <el-button type="primary" size="large" :loading="registerLoading" class="full-btn" @click="handleRegister">
-                创建账户
+                {{ t('auth.registerBtn') }}
               </el-button>
             </el-form>
           </el-tab-pane>
@@ -76,9 +76,10 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { loginApi, registerApi } from '@/api/auth';
 import { useUserStore } from '@/store/modules/user';
 import { USER_ROLE } from '@/dicts';
@@ -86,6 +87,7 @@ import { USER_ROLE } from '@/dicts';
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
+const { t } = useI18n();
 
 const activeTab = ref('login');
 const loginLoading = ref(false);
@@ -104,20 +106,20 @@ const registerForm = reactive({
   confirmPassword: '',
 });
 
-const loginRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-};
+const loginRules = computed(() => ({
+  username: [{ required: true, message: t('auth.usernameRequired'), trigger: 'blur' }],
+  password: [{ required: true, message: t('auth.passwordRequired'), trigger: 'blur' }],
+}));
 
-const registerRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+const registerRules = computed(() => ({
+  username: [{ required: true, message: t('auth.usernameRequired'), trigger: 'blur' }],
+  password: [{ required: true, message: t('auth.passwordRequired'), trigger: 'blur' }],
   confirmPassword: [
-    { required: true, message: '请确认密码', trigger: 'blur' },
+    { required: true, message: t('auth.confirmRequired'), trigger: 'blur' },
     {
       validator: (_rule, value, callback) => {
         if (value !== registerForm.password) {
-          callback(new Error('两次密码输入不一致'));
+          callback(new Error(t('auth.passwordMismatch')));
           return;
         }
         callback();
@@ -125,7 +127,7 @@ const registerRules = {
       trigger: 'blur',
     },
   ],
-};
+}));
 
 function syncTabFromQuery() {
   const tab = String(route.query?.tab || '').trim().toLowerCase();
@@ -148,7 +150,7 @@ async function handleLogin() {
     const defaultRedirect = role === USER_ROLE.ADMIN ? '/admin' : '/home';
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : defaultRedirect;
     await router.replace(redirect);
-    ElMessage.success('登录成功');
+    ElMessage.success(t('auth.loginSuccess'));
   } catch (_error) {
     // 请求层与表单层已处理提示
   } finally {
@@ -164,7 +166,7 @@ async function handleRegister() {
     await registerFormRef.value.validate();
     registerLoading.value = true;
     await registerApi(registerForm);
-    ElMessage.success('注册成功，请登录后到个人中心提交执行者申请');
+    ElMessage.success(t('auth.registerSuccess'));
     activeTab.value = 'login';
     loginForm.username = registerForm.username;
     loginForm.password = '';

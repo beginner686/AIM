@@ -1,18 +1,18 @@
 <template>
   <el-space direction="vertical" fill>
     <el-card shadow="never">
-      <template #header>订单详情</template>
-      <el-alert v-if="invalidOrderId" title="订单ID无效" type="error" :closable="false" show-icon />
+      <template #header>{{ t('orderDetail.pageTitle') }}</template>
+      <el-alert v-if="invalidOrderId" :title="t('orderDetail.invalidOrderId')" type="error" :closable="false" show-icon />
       <el-alert v-else-if="loadError" :title="loadError" type="error" :closable="false" show-icon />
 
       <div v-else v-loading="loading">
-        <el-descriptions title="订单基本信息" :column="2" border>
-          <el-descriptions-item label="订单ID">{{ order.id || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="订单号">{{ order.orderNo || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="需求ID">{{ order.demandId || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="执行者ID">{{ order.workerUserId || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ formatDateTime(order.createdTime) }}</el-descriptions-item>
-          <el-descriptions-item label="当前状态">
+        <el-descriptions :title="t('orderDetail.basicInfo')" :column="2" border>
+          <el-descriptions-item :label="t('orderDetail.orderId')">{{ order.id || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('orderDetail.orderNo')">{{ order.orderNo || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('orderDetail.demandId')">{{ order.demandId || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('orderDetail.workerId')">{{ order.workerUserId || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('orderDetail.createdTime')">{{ formatDateTime(order.createdTime) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('orderDetail.currentStatus')">
             <el-tag :type="orderStatusTag.type">{{ orderStatusTag.label }}</el-tag>
           </el-descriptions-item>
         </el-descriptions>
@@ -20,21 +20,21 @@
     </el-card>
 
     <el-card shadow="never">
-      <template #header>费用信息</template>
+      <template #header>{{ t('orderDetail.feeInfo') }}</template>
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="订单总金额">{{ formatMoney(order.amount) }}</el-descriptions-item>
-        <el-descriptions-item label="服务费金额">{{ formatMoney(order.serviceFeeAmount) }}</el-descriptions-item>
-        <el-descriptions-item label="平台抽成">{{ formatMoney(order.platformFee) }}</el-descriptions-item>
-        <el-descriptions-item label="执行者收入">{{ formatMoney(order.workerIncome) }}</el-descriptions-item>
-        <el-descriptions-item label="服务费状态">
+        <el-descriptions-item :label="t('orderDetail.orderAmount')">{{ formatMoney(order.amount) }}</el-descriptions-item>
+        <el-descriptions-item :label="t('orderDetail.serviceFeeAmount')">{{ formatMoney(order.serviceFeeAmount) }}</el-descriptions-item>
+        <el-descriptions-item :label="t('orderDetail.platformFee')">{{ formatMoney(order.platformFee) }}</el-descriptions-item>
+        <el-descriptions-item :label="t('orderDetail.workerIncome')">{{ formatMoney(order.workerIncome) }}</el-descriptions-item>
+        <el-descriptions-item :label="t('orderDetail.serviceFeeStatus')">
           <el-tag :type="serviceFeeStatusTag">{{ order.serviceFeeStatus || 'REQUIRED' }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="支付时间">{{ formatDateTime(order.serviceFeePaidTime) }}</el-descriptions-item>
+        <el-descriptions-item :label="t('orderDetail.paidTime')">{{ formatDateTime(order.serviceFeePaidTime) }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
 
     <el-card shadow="never" class="action-panel">
-      <template #header>订单操作</template>
+      <template #header>{{ t('orderDetail.actionsTitle') }}</template>
       <div v-if="order.status === ORDER_STATUS.SERVICE_FEE_REQUIRED" class="action-row">
         <template v-if="isEmployer && canClientOperate">
           <el-button
@@ -42,7 +42,7 @@
             :loading="actionLoading"
             @click="handlePayServiceFee"
           >
-            支付服务费并解锁
+            {{ t('orderDetail.payAndUnlock') }}
           </el-button>
           <el-button
             type="danger"
@@ -50,22 +50,16 @@
             :loading="actionLoading"
             @click="handleCancelOrder"
           >
-            取消订单
+            {{ t('orderDetail.cancelOrder') }}
           </el-button>
         </template>
-        <span class="action-tip">
-          {{ isEmployer
-            ? (canClientOperate
-              ? '支付后进入待执行者接单，接单后解锁联系方式、收款方式和聊天入口。'
-              : '当前账号角色无支付权限，请使用需求方账号（USER/EMPLOYER/CLIENT）。')
-            : '等待需求方支付服务费后解锁。' }}
-        </span>
+        <span class="action-tip">{{ serviceFeeRequiredTip }}</span>
       </div>
 
       <div v-else-if="order.status === ORDER_STATUS.WAIT_WORKER_ACCEPT || order.status === ORDER_STATUS.SERVICE_FEE_PAID" class="action-row">
         <template v-if="isWorker">
-          <el-button type="success" :loading="actionLoading" @click="handleAccept">确认接单</el-button>
-          <el-button type="danger" :loading="actionLoading" @click="handleReject">拒绝接单</el-button>
+          <el-button type="success" :loading="actionLoading" @click="handleAccept">{{ t('orderDetail.acceptOrder') }}</el-button>
+          <el-button type="danger" :loading="actionLoading" @click="handleReject">{{ t('orderDetail.rejectOrder') }}</el-button>
         </template>
         <el-button
           v-if="isEmployer && canClientOperate"
@@ -74,13 +68,9 @@
           :loading="actionLoading"
           @click="handleCancelOrder"
         >
-          取消订单
+          {{ t('orderDetail.cancelOrder') }}
         </el-button>
-        <span class="action-tip">
-          {{ isWorker
-            ? '请确认是否接单，接单后可开始履约。'
-            : (isEmployer && canClientOperate ? '可继续等待执行者接单，或主动取消订单。' : '等待执行者确认接单。') }}
-        </span>
+        <span class="action-tip">{{ waitAcceptTip }}</span>
       </div>
 
       <div v-else-if="order.status === ORDER_STATUS.MATCH_UNLOCKED" class="action-row">
@@ -91,87 +81,77 @@
           :loading="actionLoading"
           @click="handleCancelOrder"
         >
-          取消订单
+          {{ t('orderDetail.cancelOrder') }}
         </el-button>
-        <el-button v-if="isWorker" type="success" :loading="actionLoading" @click="handleStart">开始工作</el-button>
-        <span class="action-tip">
-          {{ isWorker
-            ? '执行者确认开始后进入履约阶段。'
-            : (isEmployer && canClientOperate ? '执行者尚未开始工作，你可以选择取消订单。' : '等待执行者开始工作。') }}
-        </span>
+        <el-button v-if="isWorker" type="success" :loading="actionLoading" @click="handleStart">{{ t('orderDetail.startWork') }}</el-button>
+        <span class="action-tip">{{ matchUnlockedTip }}</span>
       </div>
 
       <div v-else-if="order.status === ORDER_STATUS.IN_PROGRESS" class="action-row">
         <template v-if="isEmployer && canClientOperate">
-          <el-button type="primary" :loading="actionLoading" @click="handleComplete">确认完成</el-button>
-          <el-button type="danger" :loading="actionLoading" @click="handleDispute">发起争议</el-button>
+          <el-button type="primary" :loading="actionLoading" @click="handleComplete">{{ t('orderDetail.completeOrder') }}</el-button>
+          <el-button type="danger" :loading="actionLoading" @click="handleDispute">{{ t('orderDetail.raiseDispute') }}</el-button>
         </template>
-        <span class="action-tip">
-          {{ isEmployer
-            ? (canClientOperate
-              ? '确认完成后可进入评价。'
-              : '当前账号角色无需求方操作权限，请使用需求方账号（USER/EMPLOYER/CLIENT）。')
-            : '履约进行中，等待需求方确认完成。' }}
-        </span>
+        <span class="action-tip">{{ inProgressTip }}</span>
       </div>
 
       <div v-else-if="order.status === ORDER_STATUS.COMPLETED" class="action-row">
-        <el-tag type="success" size="large">订单已完成</el-tag>
-        <span class="action-tip">双方可在下方提交评价。</span>
+        <el-tag type="success" size="large">{{ t('orderDetail.completedTag') }}</el-tag>
+        <span class="action-tip">{{ t('orderDetail.completedTip') }}</span>
       </div>
 
       <div v-else-if="isDisputeStatus" class="action-row">
-        <el-tag type="danger" size="large">争议处理中</el-tag>
-        <span class="action-tip">平台介入处理中，请关注后续状态。</span>
+        <el-tag type="danger" size="large">{{ t('orderDetail.disputeTag') }}</el-tag>
+        <span class="action-tip">{{ t('orderDetail.disputeTip') }}</span>
       </div>
 
       <div v-else class="action-row">
-        <span class="action-tip">当前状态无可用操作。</span>
+        <span class="action-tip">{{ t('orderDetail.noAction') }}</span>
       </div>
     </el-card>
 
     <el-card shadow="never">
-      <template #header>执行者联系方式与收款方式</template>
+      <template #header>{{ t('orderDetail.contactTitle') }}</template>
       <el-alert
         v-if="!detail.showContact"
-        title="执行者接单后可解锁联系方式与收款方式"
+        :title="t('orderDetail.contactLocked')"
         type="warning"
         :closable="false"
         show-icon
       />
       <el-descriptions v-else :column="1" border>
-        <el-descriptions-item label="执行者姓名">{{ detail.runnerDisplayName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="联系方式">{{ detail.runnerContact || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="t('orderDetail.runnerName')">{{ detail.runnerDisplayName || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="t('orderDetail.contact')">{{ detail.runnerContact || '-' }}</el-descriptions-item>
         <el-descriptions-item label="PayPal">
           {{ detail.runnerPaymentProfile?.paypalEmail || '-' }}
         </el-descriptions-item>
         <el-descriptions-item label="Wise">
           <el-link v-if="detail.runnerPaymentProfile?.wiseLink" :href="detail.runnerPaymentProfile.wiseLink" target="_blank" type="primary">
-            打开 Wise 链接
+            {{ t('orderDetail.openWise') }}
           </el-link>
           <span v-else>-</span>
         </el-descriptions-item>
-        <el-descriptions-item label="收款链接">
+        <el-descriptions-item :label="t('orderDetail.paymentLink')">
           <el-link v-if="detail.runnerPaymentProfile?.paymentUrl" :href="detail.runnerPaymentProfile.paymentUrl" target="_blank" type="primary">
-            打开收款链接
+            {{ t('orderDetail.openPaymentLink') }}
           </el-link>
           <span v-else>-</span>
         </el-descriptions-item>
-        <el-descriptions-item label="币种">{{ detail.runnerPaymentProfile?.currency || 'CNY' }}</el-descriptions-item>
+        <el-descriptions-item :label="t('orderDetail.currency')">{{ detail.runnerPaymentProfile?.currency || 'CNY' }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
 
     <el-card v-if="detail.showChat" shadow="never">
-      <template #header>站内沟通</template>
+      <template #header>{{ t('orderDetail.chatTitle') }}</template>
       <div class="chat-wrap" v-loading="chatLoading">
         <div class="chat-list">
-          <el-empty v-if="chatMessages.length === 0" description="暂无消息" :image-size="72" />
+          <el-empty v-if="chatMessages.length === 0" :description="t('orderDetail.noMessages')" :image-size="72" />
           <div v-for="item in chatMessages" :key="item.id" class="chat-item">
-            <p class="chat-meta">发送者 {{ item.senderId }} · {{ formatDateTime(item.createdTime) }}</p>
+            <p class="chat-meta">{{ t('orderDetail.senderWithTime', { senderId: item.senderId, time: formatDateTime(item.createdTime) }) }}</p>
             <p class="chat-content">{{ item.content }}</p>
             <el-alert
               v-if="item.warning"
-              :title="item.warningMessage || '为保障权益，请在平台内完成交易'"
+              :title="item.warningMessage || t('orderDetail.chatWarning')"
               type="warning"
               :closable="false"
               show-icon
@@ -185,7 +165,7 @@
             :rows="3"
             maxlength="500"
             show-word-limit
-            placeholder="输入消息内容"
+            :placeholder="t('orderDetail.chatInput')"
           />
           <el-button
             type="primary"
@@ -193,42 +173,42 @@
             :disabled="!chatInput.trim()"
             @click="handleSendMessage"
           >
-            发送消息
+            {{ t('orderDetail.sendMessage') }}
           </el-button>
         </div>
       </div>
     </el-card>
 
     <el-card v-if="order.status === ORDER_STATUS.COMPLETED" shadow="never">
-      <template #header>信用评价</template>
+      <template #header>{{ t('orderDetail.reviewTitle') }}</template>
       <div class="review-wrap" v-loading="reviewLoading">
         <el-form v-if="canReview" :model="reviewForm" label-width="72px" class="review-form">
-          <el-form-item label="评分">
+          <el-form-item :label="t('orderDetail.reviewScore')">
             <el-rate v-model="reviewForm.score" />
           </el-form-item>
-          <el-form-item label="评价">
+          <el-form-item :label="t('orderDetail.reviewContent')">
             <el-input v-model="reviewForm.content" type="textarea" :rows="3" maxlength="300" show-word-limit />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" :loading="reviewSubmitting" @click="submitReview">提交评价</el-button>
+            <el-button type="primary" :loading="reviewSubmitting" @click="submitReview">{{ t('orderDetail.submitReview') }}</el-button>
           </el-form-item>
         </el-form>
         <el-alert
           v-else
-          title="你已评价或无评价权限"
+          :title="t('orderDetail.noReviewPermission')"
           type="info"
           :closable="false"
           show-icon
         />
 
         <div class="review-list">
-          <el-empty v-if="reviews.length === 0" description="暂无评价" :image-size="72" />
+          <el-empty v-if="reviews.length === 0" :description="t('orderDetail.noReviews')" :image-size="72" />
           <div v-for="item in reviews" :key="item.id" class="review-item">
             <div class="review-head">
-              <span>评价人 {{ item.reviewerId }} → {{ item.revieweeId }}</span>
+              <span>{{ t('orderDetail.reviewerFlow', { reviewerId: item.reviewerId, revieweeId: item.revieweeId }) }}</span>
               <el-rate :model-value="item.score" disabled />
             </div>
-            <p>{{ item.content || '未填写评价内容' }}</p>
+            <p>{{ item.content || t('orderDetail.reviewEmptyContent') }}</p>
           </div>
         </div>
       </div>
@@ -240,6 +220,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
 import {
   cancelOrderApi,
   completeOrderApi,
@@ -265,6 +246,7 @@ import { useUserStore } from '@/store/modules/user';
 
 const route = useRoute();
 const userStore = useUserStore();
+const { t } = useI18n();
 
 const loading = ref(false);
 const actionLoading = ref(false);
@@ -309,6 +291,30 @@ const isDisputeStatus = computed(() => ORDER_DISPUTE_STATUSES.includes(order.val
 const canReview = computed(() => {
   if (order.value.status !== ORDER_STATUS.COMPLETED) return false;
   return !reviews.value.some((item) => Number(item?.reviewerId || 0) === currentUserId.value);
+});
+const serviceFeeRequiredTip = computed(() => {
+  if (isEmployer.value) {
+    if (canClientOperate.value) return t('orderDetail.tipServiceFeeEmployer');
+    return t('orderDetail.tipNoPayPermission');
+  }
+  return t('orderDetail.tipWaitEmployerPay');
+});
+const waitAcceptTip = computed(() => {
+  if (isWorker.value) return t('orderDetail.tipWaitAcceptWorker');
+  if (isEmployer.value && canClientOperate.value) return t('orderDetail.tipWaitAcceptEmployer');
+  return t('orderDetail.tipWaitAcceptOther');
+});
+const matchUnlockedTip = computed(() => {
+  if (isWorker.value) return t('orderDetail.tipMatchUnlockedWorker');
+  if (isEmployer.value && canClientOperate.value) return t('orderDetail.tipMatchUnlockedEmployer');
+  return t('orderDetail.tipMatchUnlockedOther');
+});
+const inProgressTip = computed(() => {
+  if (isEmployer.value) {
+    if (canClientOperate.value) return t('orderDetail.tipInProgressEmployer');
+    return t('orderDetail.tipNoClientPermission');
+  }
+  return t('orderDetail.tipInProgressOther');
 });
 
 function formatDateTime(value) {
@@ -375,7 +381,7 @@ async function loadDetail() {
     await Promise.allSettled([loadChat(), loadReviews()]);
   } catch (error) {
     const status = error?.response?.status;
-    loadError.value = status === 404 ? '订单不存在' : '订单详情加载失败，请稍后重试';
+    loadError.value = status === 404 ? t('orderDetail.notFound') : t('orderDetail.loadFailed');
   } finally {
     loading.value = false;
   }
@@ -388,9 +394,9 @@ function isCancelError(error) {
 async function handlePayServiceFee() {
   if (actionLoading.value || !isEmployer.value || !canClientOperate.value) return;
   try {
-    await ElMessageBox.confirm('确认支付服务费并解锁执行者信息？', '服务费支付', {
-      confirmButtonText: '确认支付',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('orderDetail.payConfirmMessage'), t('orderDetail.payConfirmTitle'), {
+      confirmButtonText: t('orderDetail.confirmPay'),
+      cancelButtonText: t('orderDetail.cancel'),
       type: 'warning',
     });
     actionLoading.value = true;
@@ -398,12 +404,12 @@ async function handlePayServiceFee() {
     const codeUrl = String(paymentData?.codeUrl || '');
     if (codeUrl.startsWith('mock://auto-success/')) {
       await loadDetail();
-      ElMessage.success('测试模式已自动支付成功，等待执行者接单');
+      ElMessage.success(t('orderDetail.payMockSuccess'));
     } else if (codeUrl) {
       window.open(paymentData.codeUrl, '_blank');
-      ElMessage.success('已生成支付二维码，请完成支付，支付后将进入待执行者接单');
+      ElMessage.success(t('orderDetail.payQrCreated'));
     } else {
-      ElMessage.success('支付单已创建，请完成支付，支付后将进入待执行者接单');
+      ElMessage.success(t('orderDetail.payOrderCreated'));
     }
   } catch (error) {
     if (!isCancelError(error)) {}
@@ -415,10 +421,10 @@ async function handlePayServiceFee() {
 async function handleAccept() {
   if (actionLoading.value || !isWorker.value) return;
   try {
-    await ElMessageBox.confirm('确认接单并解锁联系方式？', '接单确认', { type: 'warning' });
+    await ElMessageBox.confirm(t('orderDetail.acceptConfirmMessage'), t('orderDetail.acceptConfirmTitle'), { type: 'warning' });
     actionLoading.value = true;
     await acceptOrderApi(order.value.id);
-    ElMessage.success('已接单，订单已解锁');
+    ElMessage.success(t('orderDetail.acceptSuccess'));
     await loadDetail();
   } catch (error) {
     if (!isCancelError(error)) {}
@@ -430,14 +436,14 @@ async function handleAccept() {
 async function handleReject() {
   if (actionLoading.value || !isWorker.value) return;
   try {
-    const { value: reason } = await ElMessageBox.prompt('可填写拒单原因（选填）', '拒绝接单', {
-      confirmButtonText: '确认拒单',
-      cancelButtonText: '取消',
-      inputPlaceholder: '例如：当前排期冲突',
+    const { value: reason } = await ElMessageBox.prompt(t('orderDetail.rejectPromptMessage'), t('orderDetail.rejectPromptTitle'), {
+      confirmButtonText: t('orderDetail.confirmReject'),
+      cancelButtonText: t('orderDetail.cancel'),
+      inputPlaceholder: t('orderDetail.rejectPlaceholder'),
     });
     actionLoading.value = true;
     await rejectOrderApi(order.value.id, String(reason || '').trim());
-    ElMessage.success('已拒单，订单已关闭');
+    ElMessage.success(t('orderDetail.rejectSuccess'));
     await loadDetail();
   } catch (error) {
     if (!isCancelError(error)) {}
@@ -449,10 +455,10 @@ async function handleReject() {
 async function handleStart() {
   if (actionLoading.value || !isWorker.value) return;
   try {
-    await ElMessageBox.confirm('确认开始工作？', '提示', { type: 'warning' });
+    await ElMessageBox.confirm(t('orderDetail.startConfirmMessage'), t('orderDetail.tipTitle'), { type: 'warning' });
     actionLoading.value = true;
     await startWorkApi(order.value.id);
-    ElMessage.success('已进入执行中');
+    ElMessage.success(t('orderDetail.startSuccess'));
     await loadDetail();
   } catch (error) {
     if (!isCancelError(error)) {}
@@ -464,10 +470,10 @@ async function handleStart() {
 async function handleComplete() {
   if (actionLoading.value || !isEmployer.value || !canClientOperate.value) return;
   try {
-    await ElMessageBox.confirm('确认订单已完成？', '提示', { type: 'warning' });
+    await ElMessageBox.confirm(t('orderDetail.completeConfirmMessage'), t('orderDetail.tipTitle'), { type: 'warning' });
     actionLoading.value = true;
     await completeOrderApi(order.value.id);
-    ElMessage.success('订单已完成');
+    ElMessage.success(t('orderDetail.completeSuccess'));
     await loadDetail();
   } catch (error) {
     if (!isCancelError(error)) {}
@@ -479,14 +485,14 @@ async function handleComplete() {
 async function handleCancelOrder() {
   if (actionLoading.value || !isEmployer.value || !canClientOperate.value) return;
   try {
-    const { value: reason } = await ElMessageBox.prompt('可填写取消原因（选填）', '取消订单', {
-      confirmButtonText: '确认取消',
-      cancelButtonText: '返回',
-      inputPlaceholder: '例如：需求变更',
+    const { value: reason } = await ElMessageBox.prompt(t('orderDetail.cancelPromptMessage'), t('orderDetail.cancelPromptTitle'), {
+      confirmButtonText: t('orderDetail.confirmCancel'),
+      cancelButtonText: t('orderDetail.back'),
+      inputPlaceholder: t('orderDetail.cancelPlaceholder'),
     });
     actionLoading.value = true;
     await cancelOrderApi(order.value.id, String(reason || '').trim());
-    ElMessage.success('订单已取消');
+    ElMessage.success(t('orderDetail.cancelSuccess'));
     await loadDetail();
   } catch (error) {
     if (!isCancelError(error)) {}
@@ -498,15 +504,15 @@ async function handleCancelOrder() {
 async function handleDispute() {
   if (actionLoading.value || !isEmployer.value || !canClientOperate.value) return;
   try {
-    const { value: reason } = await ElMessageBox.prompt('请输入争议原因：', '发起争议', {
-      confirmButtonText: '提交',
-      cancelButtonText: '取消',
+    const { value: reason } = await ElMessageBox.prompt(t('orderDetail.disputePromptMessage'), t('orderDetail.disputePromptTitle'), {
+      confirmButtonText: t('orderDetail.submit'),
+      cancelButtonText: t('orderDetail.cancel'),
       inputPattern: /\S+/,
-      inputErrorMessage: '原因不能为空',
+      inputErrorMessage: t('orderDetail.disputeReasonRequired'),
     });
     actionLoading.value = true;
     await disputeOrderApi(order.value.id, reason);
-    ElMessage.success('争议已提交');
+    ElMessage.success(t('orderDetail.disputeSuccess'));
     await loadDetail();
   } catch (error) {
     if (!isCancelError(error)) {}
@@ -524,7 +530,7 @@ async function handleSendMessage() {
     chatMessages.value.push(message);
     chatInput.value = '';
   } catch {
-    ElMessage.error('发送失败，请稍后重试');
+    ElMessage.error(t('orderDetail.sendFailed'));
   } finally {
     chatSending.value = false;
   }
@@ -535,12 +541,12 @@ async function submitReview() {
   reviewSubmitting.value = true;
   try {
     await createOrderReviewApi(order.value.id, reviewForm.score, reviewForm.content.trim());
-    ElMessage.success('评价已提交');
+    ElMessage.success(t('orderDetail.reviewSubmitSuccess'));
     reviewForm.score = 5;
     reviewForm.content = '';
     await loadReviews();
   } catch {
-    ElMessage.error('评价提交失败');
+    ElMessage.error(t('orderDetail.reviewSubmitFailed'));
   } finally {
     reviewSubmitting.value = false;
   }

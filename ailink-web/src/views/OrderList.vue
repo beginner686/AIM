@@ -63,6 +63,14 @@
           />
         </el-select>
         <el-button @click="clearFilters">{{ t('orderList.resetFilters') }}</el-button>
+        <el-button
+          type="danger"
+          plain
+          :disabled="selectedOrderIds.length === 0"
+          @click="handleDeleteSelected"
+        >
+          {{ t('orderList.deleteSelected') }}
+        </el-button>
       </div>
       <p class="filter-hint">
         {{ t('orderList.filterHint', { shown: filteredOrders.length, total: orders.length, rate: completionRate }) }}
@@ -80,16 +88,24 @@
           :key="order.id"
           class="order-card reveal-up"
           :style="{ animationDelay: `${index * 0.05}s` }"
-          @click="router.push(`/order/${order.id}`)"
+          @click="openOrder(order)"
         >
-            <div class="card-head">
-              <div class="head-main">
-                <h3>{{ t('orderList.orderWithId', { id: order.id }) }}</h3>
-                <p>
-                  {{ t('orderList.demandId') }} {{ order.demandId || '—' }} · {{ t('orderList.workerId') }}
-                  {{ order.workerProfileId || order.workerId || order.workerUserId || '—' }}
-                </p>
-              </div>
+	          <div class="card-head">
+	            <div class="head-main">
+	                <div class="head-title-row">
+	                  <el-checkbox
+	                    :model-value="selectedOrderIds.includes(order.id)"
+	                    :disabled="!isOrderDeletable(order)"
+	                    @click.stop
+	                    @change="(checked) => toggleOrderSelection(order.id, checked)"
+	                  />
+	                  <h3>{{ t('orderList.orderWithId', { id: order.id }) }}</h3>
+	                </div>
+	                <p>
+	                  {{ t('orderList.demandId') }} {{ order.demandId || '—' }} · {{ t('orderList.workerId') }}
+	                  {{ order.workerProfileId || order.workerId || order.workerUserId || '—' }}
+	                </p>
+	              </div>
             <div class="head-tags">
               <el-tag size="small" :type="orderStatusType(order.status)">
                 {{ orderStatusText(order.status) }}
@@ -104,14 +120,6 @@
               <div>
                 <span>{{ t('orderList.amountOrder') }}</span>
                 <strong>¥{{ formatMoney(order.amount) }}</strong>
-              </div>
-              <div>
-                <span>{{ t('orderList.amountPlatformFee') }}</span>
-                <strong>¥{{ formatMoney(order.platformFee) }}</strong>
-              </div>
-              <div>
-                <span>{{ t('orderList.amountWorkerIncome') }}</span>
-                <strong>¥{{ formatMoney(order.workerIncome) }}</strong>
               </div>
             </div>
 
@@ -129,8 +137,9 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Refresh } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
-import { getMyOrderListApi } from '@/api/order';
+import { deleteMyOrdersApi, getMyOrderListApi } from '@/api/order';
 import {
   ORDER_ACTIVE_STATUSES,
   ORDER_CLOSED_STATUSES,
@@ -153,6 +162,7 @@ const orders = ref([]);
 const filterStatus = ref('');
 const filterPayStatus = ref('');
 const keyword = ref('');
+const selectedOrderIds = ref([]);
 
 const orderStatusOptions = computed(() => toSelectOptions(ORDER_STATUS_DICT));
 const payStatusOptions = computed(() => toSelectOptions(PAY_STATUS_DICT));
@@ -238,10 +248,90 @@ function formatDate(value) {
   return `${y}-${m}-${d}`;
 }
 
+function resolveOrderEntryPath(order) {
+  const id = Number(order?.id || 0);
+  if (!id) return '';
+  const status = String(order?.status || '').trim().toUpperCase();
+  if (status === 'CREATED' || status === 'SERVICE_FEE_REQUIRED') {
+    return `/order/checkout/${id}`;
+  }
+  if (status === 'SERVICE_FEE_PAID' || status === 'WAIT_WORKER_ACCEPT' || status === 'MATCH_UNLOCKED') {
+    return `/order/match/${id}`;
+  }
+  return `/order/${id}`;
+}
+
+function openOrder(order) {
+  const path = resolveOrderEntryPath(order);
+  if (!path) return;
+  router.push(path);
+}
+
 function clearFilters() {
   filterStatus.value = '';
   filterPayStatus.value = '';
   keyword.value = '';
+}
+
+function isOrderDeletable(order) {
+  const status = String(order?.status || '').trim();
+  if (!status) return false;
+  return ORDER_COMPLETED_STATUSES.includes(status) || ORDER_CLOSED_STATUSES.includes(status);
+}
+
+function toggleOrderSelection(orderId, checked) {
+  const id = Number(orderId || 0);
+  if (!id) return;
+  if (checked) {
+    if (!selectedOrderIds.value.includes(id)) {
+      selectedOrderIds.value.push(id);
+    }
+    return;
+  }
+  selectedOrderIds.value = selectedOrderIds.value.filter((item) => Number(item) !== id);
+}
+
+async function handleDeleteSelected() {
+  const ids = selectedOrderIds.value
+    .map((item) => Number(item || 0))
+    .filter((item) => item > 0);
+  if (ids.length === 0) {
+    ElMessage.warning(t('orderList.deleteSelectRequired'));
+    return;
+  }
+  try {
+    await ElMessageBox.confirm(
+      t('orderList.deleteConfirmMessage', { count: ids.length }),
+      t('orderList.deleteConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('orderList.confirmDelete'),
+        cancelButtonText: t('orderList.cancelDelete'),
+      },
+    );
+  } catch {
+    return;
+  }
+
+  try {
+    const data = await deleteMyOrdersApi(ids);
+    const deletedCount = Number(data?.deletedCount || 0);
+    const blockedCount = Number(data?.blockedCount || 0);
+    selectedOrderIds.value = [];
+    await loadOrders();
+    if (deletedCount > 0 && blockedCount === 0) {
+      ElMessage.success(t('orderList.deleteSuccess', { count: deletedCount }));
+      return;
+    }
+    if (deletedCount > 0 && blockedCount > 0) {
+      ElMessage.warning(t('orderList.deletePartial', { deleted: deletedCount, blocked: blockedCount }));
+      return;
+    }
+    ElMessage.warning(t('orderList.deleteBlocked', { count: blockedCount || ids.length }));
+  } catch (error) {
+    const message = String(error?.message || '').trim();
+    ElMessage.error(message || t('orderList.deleteFailed'));
+  }
 }
 
 async function loadOrders() {
@@ -249,8 +339,16 @@ async function loadOrders() {
   try {
     const data = await getMyOrderListApi();
     orders.value = Array.isArray(data) ? data : [];
+    const deletableIdSet = new Set(
+      orders.value
+        .filter((item) => isOrderDeletable(item))
+        .map((item) => Number(item.id || 0))
+        .filter((item) => item > 0),
+    );
+    selectedOrderIds.value = selectedOrderIds.value.filter((id) => deletableIdSet.has(Number(id || 0)));
   } catch {
     orders.value = [];
+    selectedOrderIds.value = [];
   } finally {
     loading.value = false;
   }
@@ -525,6 +623,12 @@ onMounted(loadOrders);
   line-height: 1.2;
 }
 
+.head-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .head-main p {
   margin: 6px 0 0;
   font-size: 13.5px;
@@ -541,9 +645,8 @@ onMounted(loadOrders);
   padding: 14px 0;
   border-top: 1px dashed rgba(200, 216, 238, 0.7);
   border-bottom: 1px dashed rgba(200, 216, 238, 0.7);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  gap: 24px;
 }
 
 .amount-grid span {
@@ -614,7 +717,7 @@ onMounted(loadOrders);
   }
 
   .amount-grid {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .card-head,

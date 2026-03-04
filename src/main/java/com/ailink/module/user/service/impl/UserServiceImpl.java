@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -66,6 +67,8 @@ public class UserServiceImpl implements UserService {
         user.setCity(request.getCity());
         user.setStatus(1);
         user.setWorkerApplyStatus("WORKER".equalsIgnoreCase(user.getRole()) ? "APPROVED" : "NONE");
+        user.setReviewScore(new BigDecimal("5.00"));
+        user.setVerifyStatus("UNVERIFIED");
         userMapper.insert(user);
         return user.getId();
     }
@@ -119,6 +122,8 @@ public class UserServiceImpl implements UserService {
         vo.setCity(user.getCity());
         vo.setStatus(user.getStatus());
         vo.setWorkerApplyStatus(user.getWorkerApplyStatus());
+        vo.setReviewScore(user.getReviewScore());
+        vo.setVerifyStatus(user.getVerifyStatus());
         vo.setCreatedTime(user.getCreatedTime());
         return vo;
     }

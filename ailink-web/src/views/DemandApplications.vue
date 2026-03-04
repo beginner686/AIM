@@ -270,7 +270,7 @@ async function handleAccept(row) {
     await Promise.all([loadOwnerApplications(), loadMyApplications()]);
     const orderId = Number(data?.orderId || 0);
     if (orderId) {
-      router.push(`/order/${orderId}`);
+      router.push(`/order/checkout/${orderId}`);
     }
   } catch (error) {
     if (error !== 'cancel' && error !== 'close') {

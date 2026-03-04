@@ -27,7 +27,14 @@ public class Order extends BaseEntity {
     private String status;
     private String serviceFeeStatus;
     private BigDecimal serviceFeeAmount;
+    private Long serviceFeeRmb;
     private LocalDateTime serviceFeePaidTime;
+    private BigDecimal laborBudgetAmount;
+    private String laborBudgetCurrency;
+    private Integer employerDeclaredPaid;
+    private LocalDateTime employerDeclaredPaidTime;
+    private Integer workerConfirmedPaid;
+    private LocalDateTime workerConfirmedPaidTime;
     private String payStatus;
     private String paymentChannel;
     private BigDecimal platformFeeRate;

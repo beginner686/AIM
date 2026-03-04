@@ -43,6 +43,17 @@ export function getMyOrderListApi() {
   });
 }
 
+export function deleteMyOrdersApi(orderIds = []) {
+  return request({
+    url: '/order/my/delete',
+    method: 'post',
+    data: {
+      orderIds,
+    },
+    silentBusinessError: true,
+  });
+}
+
 export function payServiceFeeApi(orderId, paymentChannel = 'WECHAT_PAY') {
   return request({
     url: `/order/${orderId}/pay-service-fee`,
@@ -55,6 +66,14 @@ export function startWorkApi(orderId) {
   return request({
     url: `/order/${orderId}/start`,
     method: 'post',
+  });
+}
+
+export function declarePaidApi(orderId, remark = '') {
+  return request({
+    url: `/order/${orderId}/declare-paid`,
+    method: 'post',
+    data: { remark },
   });
 }
 
@@ -124,5 +143,12 @@ export function sendOrderChatMessageApi(orderId, content) {
     url: `/order/${orderId}/chat/messages`,
     method: 'post',
     data: { content },
+  });
+}
+
+export function getOrderDisputesApi(orderId) {
+  return request({
+    url: `/order/${orderId}/dispute`,
+    method: 'get',
   });
 }

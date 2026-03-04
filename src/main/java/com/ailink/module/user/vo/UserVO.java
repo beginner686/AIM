@@ -2,6 +2,7 @@ package com.ailink.module.user.vo;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -15,5 +16,7 @@ public class UserVO {
     private String city;
     private Integer status;
     private String workerApplyStatus;
+    private BigDecimal reviewScore;
+    private String verifyStatus;
     private LocalDateTime createdTime;
 }

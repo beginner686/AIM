@@ -20,6 +20,8 @@ public class WorkerApplyVO {
     private String realName;
     private String idNoHash;
     private String applyNote;
+    private String applyAttachmentName;
+    private String applyAttachmentUrl;
     private String reviewNote;
     private Long reviewedBy;
     private LocalDateTime reviewedTime;

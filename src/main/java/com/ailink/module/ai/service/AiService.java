@@ -6,4 +6,8 @@ import com.ailink.module.ai.vo.AiDemandStructVO;
 public interface AiService {
 
     AiDemandStructVO structureDemand(AiDemandStructRequest request);
+
+    String generateSmartMilestones(String structuredDemand);
+
+    String generateDisputeArbitrationReport(Long orderId);
 }

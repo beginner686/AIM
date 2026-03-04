@@ -1,32 +1,35 @@
 ﻿<template>
   <div class="home-page">
-    <section class="hero">
-      <div class="hero-copy">
+    <section class="hero-strip reveal-up">
+      <div class="orb orb-a" />
+      <div class="orb orb-b" />
+
+      <div class="hero-copy hero-content">
         <p class="hero-kicker">{{ t('dashboard.kicker') }}</p>
         <h1 class="hero-title">
-          {{ t('dashboard.greetingLine', { greeting, username: userStore.userInfo?.username || t('dashboard.user') }) }}
+          <span class="gradient-text">{{ t('dashboard.greetingLine', { greeting, username: userStore.userInfo?.username || t('dashboard.user') }) }}</span>
         </h1>
         <p class="hero-sub">{{ t('dashboard.heroSub') }}</p>
-        <div class="hero-tags">
+        <div class="hero-tags reveal-up delay-1">
           <span class="chip">{{ t('dashboard.countryCover') }} {{ countryCount }}</span>
           <span class="chip">{{ t('dashboard.completionRate') }} {{ completionRate }}%</span>
-          <span class="chip">{{ t('dashboard.platformRevenue') }} {{ formatMoney(platformRevenue) }}</span>
+          <span class="chip">{{ t('dashboard.gmv') }} {{ formatMoney(totalAmount) }}</span>
         </div>
       </div>
 
-      <div class="hero-actions">
-        <el-button type="primary" size="large" @click="$router.push('/publish-demand')">
+      <div class="hero-actions hero-content reveal-up delay-1">
+        <el-button class="hero-btn-primary" size="large" @click="$router.push('/publish-demand')">
           <el-icon><Plus /></el-icon>
           {{ t('dashboard.publishDemandBtn') }}
         </el-button>
-        <el-button size="large" @click="$router.push('/worker-pool')">
+        <el-button class="hero-btn-ghost" size="large" @click="$router.push('/worker-pool')">
           <el-icon><Search /></el-icon>
           {{ t('dashboard.browseWorkerBtn') }}
         </el-button>
       </div>
     </section>
 
-    <section class="kpi-grid">
+    <section class="kpi-grid reveal-up delay-1">
       <article v-for="card in kpiCards" :key="card.key" class="kpi-card">
         <div class="kpi-icon" :style="{ background: card.bg, color: card.color }">
           <el-icon :size="20"><component :is="card.icon" /></el-icon>
@@ -39,7 +42,7 @@
       </article>
     </section>
 
-    <section class="panel-grid">
+    <section class="panel-grid reveal-up delay-1">
       <article class="panel">
         <header class="panel-header">
           <h2>{{ t('dashboard.latestDemands') }}</h2>
@@ -53,9 +56,10 @@
 
         <ul v-else class="demand-list">
           <li
-            v-for="item in latestDemands"
+            v-for="(item, index) in latestDemands"
             :key="item.id"
-            class="demand-item"
+            class="demand-item reveal-up"
+            :style="{ animationDelay: `${index * 0.05}s` }"
             :class="{ 'is-clickable': canMatchDemand(item) }"
             @click="handleDemandMatch(item)"
           >
@@ -85,15 +89,19 @@
         <el-empty v-else-if="latestOrders.length === 0" :description="t('dashboard.noOrders')" :image-size="72" />
 
         <ul v-else class="order-list">
-          <li v-for="order in latestOrders" :key="order.id" class="order-item" @click="$router.push(`/order/${order.id}`)">
+          <li
+            v-for="(order, index) in latestOrders"
+            :key="order.id"
+            class="order-item reveal-up"
+            :style="{ animationDelay: `${index * 0.05}s` }"
+            @click="openOrder(order)"
+          >
             <div class="item-head">
               <span class="title">{{ t('dashboard.orderWithId', { id: order.id }) }}</span>
               <el-tag size="small" :type="orderStatusType(order.status)">{{ orderStatusText(order.status) }}</el-tag>
             </div>
             <div class="order-amount-row">
               <span class="amount">{{ formatMoney(order.amount) }}</span>
-              <span class="sub">{{ t('dashboard.platformFee') }} {{ formatMoney(order.platformFee) }}</span>
-              <span class="sub">{{ t('dashboard.workerIncome') }} {{ formatMoney(order.workerIncome) }}</span>
             </div>
             <div class="meta">
               <el-tag size="small" type="info">{{ payStatusText(order.payStatus) }}</el-tag>
@@ -143,7 +151,10 @@ const greeting = computed(() => {
   return t('dashboard.greetEvening');
 });
 
-const latestDemands = computed(() => (Array.isArray(demands.value) ? demands.value.slice(0, 5) : []));
+const latestDemands = computed(() => {
+  if (!Array.isArray(demands.value)) return [];
+  return demands.value.filter(canMatchDemand).slice(0, 5);
+});
 const latestOrders = computed(() => (Array.isArray(myOrders.value) ? myOrders.value.slice(0, 5) : []));
 
 const totalAmount = computed(() =>
@@ -262,6 +273,25 @@ function handleDemandMatch(item) {
   });
 }
 
+function resolveOrderEntryPath(order) {
+  const id = Number(order?.id || 0);
+  if (!id) return '';
+  const status = String(order?.status || '').trim().toUpperCase();
+  if (status === 'CREATED' || status === 'SERVICE_FEE_REQUIRED') {
+    return `/order/checkout/${id}`;
+  }
+  if (status === 'SERVICE_FEE_PAID' || status === 'WAIT_WORKER_ACCEPT' || status === 'MATCH_UNLOCKED') {
+    return `/order/match/${id}`;
+  }
+  return `/order/${id}`;
+}
+
+function openOrder(order) {
+  const path = resolveOrderEntryPath(order);
+  if (!path) return;
+  router.push(path);
+}
+
 onMounted(async () => {
   loading.value = true;
   try {
@@ -288,38 +318,60 @@ onMounted(async () => {
 
 <style scoped>
 .home-page {
+  --surface: rgba(255, 255, 255, 0.76);
+  --border-light: rgba(216, 228, 246, 0.85);
   display: flex;
   flex-direction: column;
   gap: 20px;
   position: relative;
+  padding-bottom: 24px;
 }
 
-.hero {
+.hero-strip {
   position: relative;
   overflow: hidden;
   border-radius: 20px;
-  padding: 34px 36px;
+  padding: 28px 30px;
   background:
-    radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.22), transparent 34%),
-    radial-gradient(circle at 88% 88%, rgba(30, 64, 175, 0.32), transparent 40%),
-    linear-gradient(120deg, #06243d 0%, #0a3657 52%, #0d4f66 100%);
-  color: #e2ecf4;
+    radial-gradient(circle at 18% -6%, rgba(68, 125, 255, 0.58), transparent 45%),
+    radial-gradient(circle at 88% 10%, rgba(61, 225, 226, 0.4), transparent 40%),
+    linear-gradient(135deg, #08132f 0%, #0f2451 46%, #11386e 100%);
+  color: #f6f9ff;
   display: flex;
   justify-content: space-between;
   gap: 24px;
   flex-wrap: wrap;
+  box-shadow: 0 16px 32px rgba(9, 23, 56, 0.12);
 }
 
-.hero::after {
-  content: '';
+.orb {
   position: absolute;
-  width: 380px;
-  height: 380px;
-  right: -120px;
-  top: -150px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(148, 213, 255, 0.18), rgba(148, 213, 255, 0));
+  filter: blur(12px);
   pointer-events: none;
+}
+
+.orb-a {
+  width: 200px;
+  height: 200px;
+  left: -40px;
+  top: -40px;
+  background: rgba(86, 140, 255, 0.45);
+  animation: floatY 6s ease-in-out infinite;
+}
+
+.orb-b {
+  width: 160px;
+  height: 160px;
+  right: 18%;
+  top: 10%;
+  background: rgba(65, 234, 203, 0.3);
+  animation: floatY 8s ease-in-out infinite reverse;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-copy {
@@ -338,17 +390,24 @@ onMounted(async () => {
 
 .hero-title {
   margin: 0;
-  font-size: 34px;
-  line-height: 1.2;
-  font-weight: 700;
-  color: #f6fbff;
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.gradient-text {
+  background: linear-gradient(92deg, #36c9f7, #73f2ba);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .hero-sub {
   margin: 12px 0 0;
   max-width: 640px;
-  font-size: 15px;
-  color: #bcd2e3;
+  font-size: 14.5px;
+  color: rgba(229, 238, 255, 0.9);
   line-height: 1.75;
 }
 
@@ -371,30 +430,67 @@ onMounted(async () => {
 .hero-actions {
   z-index: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  align-self: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.hero-btn-primary {
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 600;
+  border: none;
+  color: #052241;
+  background: linear-gradient(120deg, #75e9ff, #8fffb7);
+  box-shadow: 0 12px 24px rgba(31, 227, 208, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(31, 227, 208, 0.35);
+  background: linear-gradient(120deg, #8cf0ff, #a6ffc6);
+}
+
+.hero-btn-ghost {
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 600;
+  color: #ecf6ff;
+  border: 1px solid rgba(212, 230, 255, 0.45);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.hero-btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  transform: translateY(-2px);
 }
 
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .kpi-card {
-  background: #ffffff;
-  border: 1px solid #dbe7f1;
-  border-radius: 14px;
-  padding: 14px 14px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 24px rgba(27, 49, 90, 0.03);
   display: flex;
-  gap: 12px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  gap: 14px;
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
 }
 
 .kpi-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(2, 32, 71, 0.08);
+  box-shadow: 0 14px 28px rgba(27, 49, 90, 0.05);
 }
 
 .kpi-icon {
@@ -438,24 +534,27 @@ onMounted(async () => {
 }
 
 .panel {
-  border-radius: 14px;
-  padding: 16px;
-  background: #ffffff;
-  border: 1px solid #dbe7f1;
+  border-radius: 18px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 36px rgba(27, 49, 90, 0.04);
 }
 
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .panel-header h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
-  color: #082339;
+  color: #102449;
+  letter-spacing: -0.01em;
 }
 
 .panel-loading {
@@ -469,35 +568,31 @@ onMounted(async () => {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   padding: 0;
   margin: 0;
 }
 
 .demand-item,
 .order-item {
-  border-radius: 12px;
-  border: 1px solid #e6edf4;
-  padding: 12px;
-  background: #fbfdff;
+  border-radius: 16px;
+  border: 1px solid rgba(216, 228, 246, 0.85);
+  padding: 16px;
+  background: #fdfdff;
+  box-shadow: 0 12px 24px rgba(31, 57, 107, 0.02);
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 .demand-item.is-clickable {
   cursor: pointer;
 }
 
-.demand-item.is-clickable:hover {
-  border-color: #9ac3df;
-  background: #f2f9ff;
-}
-
-.order-item {
-  cursor: pointer;
-}
-
+.demand-item.is-clickable:hover,
 .order-item:hover {
-  border-color: #9ac3df;
-  background: #f2f9ff;
+  transform: translateY(-2px);
+  box-shadow: 0 20px 36px rgba(31, 57, 107, 0.08);
+  border-color: #bad2f9;
+  background: #fbfdff;
 }
 
 .item-head {
@@ -520,6 +615,7 @@ onMounted(async () => {
   line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -553,6 +649,24 @@ onMounted(async () => {
   align-items: center;
 }
 
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal-up {
+  animation: fadeInUp 0.55s ease both;
+}
+
+.delay-1 {
+  animation-delay: 0.1s;
+}
+
 @media (max-width: 1120px) {
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -564,25 +678,12 @@ onMounted(async () => {
 }
 
 @media (max-width: 640px) {
-  .hero {
+  .hero-strip {
     padding: 24px 18px;
-  }
-
-  .hero-title {
-    font-size: 24px;
-  }
-
-  .hero-sub {
-    font-size: 14px;
   }
 
   .kpi-grid {
     grid-template-columns: 1fr;
   }
-
-  .panel-header h2 {
-    font-size: 17px;
-  }
 }
 </style>
-

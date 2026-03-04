@@ -27,12 +27,12 @@ public class WorkerApplySubmitRequest {
 
     private String experience;
 
-    @NotBlank(message = "realName is required")
-    private String realName;
-
-    @NotBlank(message = "idNoHash is required")
-    private String idNoHash;
-
     @Size(max = 500, message = "applyNote length must be <= 500")
     private String applyNote;
+
+    @Size(max = 200, message = "applyAttachmentName length must be <= 200")
+    private String applyAttachmentName;
+
+    @Size(max = 500, message = "applyAttachmentUrl length must be <= 500")
+    private String applyAttachmentUrl;
 }

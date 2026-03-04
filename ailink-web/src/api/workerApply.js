@@ -8,6 +8,17 @@ export function submitWorkerApplyApi(data) {
   });
 }
 
+export function uploadWorkerApplyAttachmentApi(formData) {
+  return request({
+    url: '/worker/apply/attachment',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+}
+
 export function getMyWorkerApplyApi() {
   return request({
     url: '/worker/apply/me',

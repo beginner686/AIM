@@ -113,6 +113,26 @@ const routes = [
         },
       },
       {
+        path: '/order/checkout/:id',
+        name: 'OrderCheckout',
+        component: () => import('@/views/OrderCheckout.vue'),
+        meta: {
+          title: '订单结账',
+          requiresAuth: true,
+          disallowRoles: [USER_ROLE.ADMIN],
+        },
+      },
+      {
+        path: '/order/match/:id',
+        name: 'OrderMatch',
+        component: () => import('@/views/OrderMatch.vue'),
+        meta: {
+          title: '撮合解锁',
+          requiresAuth: true,
+          disallowRoles: [USER_ROLE.ADMIN],
+        },
+      },
+      {
         path: '/order/:id',
         name: 'OrderDetail',
         component: () => import('@/views/OrderDetail.vue'),

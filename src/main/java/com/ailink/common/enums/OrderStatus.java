@@ -33,7 +33,9 @@ public enum OrderStatus {
     }
 
     public boolean canChat() {
-        return this == MATCH_UNLOCKED
+        return this == SERVICE_FEE_PAID
+                || this == WAIT_WORKER_ACCEPT
+                || this == MATCH_UNLOCKED
                 || this == IN_PROGRESS
                 || this == COMPLETED
                 || this == DISPUTE

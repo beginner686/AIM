@@ -2,13 +2,17 @@ package com.ailink.module.worker.service;
 
 import com.ailink.module.worker.dto.WorkerApplyQueryRequest;
 import com.ailink.module.worker.dto.WorkerApplySubmitRequest;
+import com.ailink.module.worker.vo.WorkerApplyAttachmentVO;
 import com.ailink.module.worker.vo.WorkerApplyVO;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface WorkerApplyService {
 
     WorkerApplyVO submit(Long userId, String role, WorkerApplySubmitRequest request);
+
+    WorkerApplyAttachmentVO uploadAttachment(Long userId, MultipartFile file);
 
     WorkerApplyVO getMyLatest(Long userId);
 

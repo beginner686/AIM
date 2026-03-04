@@ -4,15 +4,19 @@ import com.ailink.common.ErrorCode;
 import com.ailink.common.enums.OrderStatus;
 import com.ailink.common.enums.ServiceFeeStatus;
 import com.ailink.common.exception.BizException;
+import com.ailink.module.ai.service.AiService;
 import com.ailink.module.demand.entity.Demand;
 import com.ailink.module.demand.mapper.DemandMapper;
 import com.ailink.module.order.dto.OrderCreateRequest;
+import com.ailink.module.order.entity.ChatMessage;
 import com.ailink.module.order.entity.Order;
 import com.ailink.module.order.entity.OrderStatusLog;
+import com.ailink.module.order.mapper.ChatMessageMapper;
 import com.ailink.module.order.mapper.OrderMapper;
 import com.ailink.module.order.mapper.OrderStatusLogMapper;
 import com.ailink.module.order.service.OrderService;
 import com.ailink.module.order.service.PlatformConfigService;
+import com.ailink.module.order.vo.OrderBatchDeleteResultVO;
 import com.ailink.module.order.vo.OrderDetailVO;
 import com.ailink.module.order.vo.OrderStatusLogVO;
 import com.ailink.module.order.vo.OrderVO;
@@ -32,7 +36,10 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -48,14 +55,18 @@ public class OrderServiceImpl implements OrderService {
     private final UserMapper userMapper;
     private final PlatformConfigService platformConfigService;
     private final RunnerPaymentProfileService runnerPaymentProfileService;
+    private final AiService aiService;
+    private final ChatMessageMapper chatMessageMapper;
 
     public OrderServiceImpl(OrderMapper orderMapper,
-                            OrderStatusLogMapper orderStatusLogMapper,
-                            DemandMapper demandMapper,
-                            WorkerProfileMapper workerProfileMapper,
-                            UserMapper userMapper,
-                            PlatformConfigService platformConfigService,
-                            RunnerPaymentProfileService runnerPaymentProfileService) {
+            OrderStatusLogMapper orderStatusLogMapper,
+            DemandMapper demandMapper,
+            WorkerProfileMapper workerProfileMapper,
+            UserMapper userMapper,
+            PlatformConfigService platformConfigService,
+            RunnerPaymentProfileService runnerPaymentProfileService,
+            AiService aiService,
+            ChatMessageMapper chatMessageMapper) {
         this.orderMapper = orderMapper;
         this.orderStatusLogMapper = orderStatusLogMapper;
         this.demandMapper = demandMapper;
@@ -63,6 +74,8 @@ public class OrderServiceImpl implements OrderService {
         this.userMapper = userMapper;
         this.platformConfigService = platformConfigService;
         this.runnerPaymentProfileService = runnerPaymentProfileService;
+        this.aiService = aiService;
+        this.chatMessageMapper = chatMessageMapper;
     }
 
     @Override
@@ -111,6 +124,9 @@ public class OrderServiceImpl implements OrderService {
         BigDecimal platformFee = amount.multiply(platformFeeRate).setScale(2, RoundingMode.HALF_UP);
         BigDecimal workerIncome = amount.subtract(platformFee).setScale(2, RoundingMode.HALF_UP);
         BigDecimal serviceFeeAmount = amount.multiply(serviceFeeRate).setScale(2, RoundingMode.HALF_UP);
+        long serviceFeeRmb = serviceFeeAmount.multiply(new BigDecimal("100"))
+                .setScale(0, RoundingMode.HALF_UP)
+                .longValue();
         if (workerIncome.compareTo(BigDecimal.ZERO) < 0) {
             throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "worker income cannot be negative");
         }
@@ -125,7 +141,16 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.CREATED.name());
         order.setServiceFeeStatus(ServiceFeeStatus.REQUIRED.name());
         order.setServiceFeeAmount(serviceFeeAmount);
+        order.setServiceFeeRmb(serviceFeeRmb);
         order.setServiceFeePaidTime(null);
+        order.setLaborBudgetAmount(amount);
+        order.setLaborBudgetCurrency(StringUtils.hasText(request.getLaborBudgetCurrency())
+                ? request.getLaborBudgetCurrency().trim().toUpperCase()
+                : "USD");
+        order.setEmployerDeclaredPaid(0);
+        order.setEmployerDeclaredPaidTime(null);
+        order.setWorkerConfirmedPaid(0);
+        order.setWorkerConfirmedPaidTime(null);
         order.setPayStatus("UNPAID");
         order.setPaymentChannel(StringUtils.hasText(request.getPaymentChannel())
                 ? request.getPaymentChannel().trim().toUpperCase()
@@ -206,9 +231,59 @@ public class OrderServiceImpl implements OrderService {
             throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only runner can start work");
         }
         if (!OrderStatus.MATCH_UNLOCKED.name().equals(order.getStatus())) {
-            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "work can only be started when status is MATCH_UNLOCKED");
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(),
+                    "work can only be started when status is MATCH_UNLOCKED");
         }
-        updateOrderStatus(workerUserId, orderId, OrderStatus.IN_PROGRESS, StringUtils.hasText(remark) ? remark : "work started");
+        if (order.getEmployerDeclaredPaid() == null || order.getEmployerDeclaredPaid() != 1) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(),
+                    "employer payment declaration is required before start");
+        }
+        Order update = new Order();
+        update.setId(orderId);
+        update.setWorkerConfirmedPaid(1);
+        update.setWorkerConfirmedPaidTime(LocalDateTime.now());
+        orderMapper.updateById(update);
+        updateOrderStatus(workerUserId, orderId, OrderStatus.IN_PROGRESS,
+                StringUtils.hasText(remark) ? remark : "work started");
+
+        // AI 生成托管契约里程碑，系统自动发入聊天室
+        try {
+            Demand demand = demandMapper.selectById(order.getDemandId());
+            String structured = demand != null ? demand.getAiStructured() : "";
+            String milestones = aiService.generateSmartMilestones(structured);
+
+            ChatMessage sysMsg = new ChatMessage();
+            sysMsg.setOrderId(orderId);
+            sysMsg.setSenderId(0L); // 0 代表 AI System
+            sysMsg.setContent("🛡️ [AI Escrow Contract Milestone]\\n" + milestones);
+            sysMsg.setWarning(1);
+            sysMsg.setWarningMessage("AI Escrow Guard is monitoring this order.");
+            chatMessageMapper.insert(sysMsg);
+        } catch (Exception e) {
+            log.error("AI generate smart milestones failed for order {}", orderId, e);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void declareExternalPayment(Long employerId, Long orderId, String remark) {
+        Order order = findById(orderId);
+        if (!employerId.equals(order.getEmployerId())) {
+            throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only client can declare payment");
+        }
+        if (!OrderStatus.SERVICE_FEE_PAID.name().equals(order.getStatus())
+                && !OrderStatus.WAIT_WORKER_ACCEPT.name().equals(order.getStatus())
+                && !OrderStatus.MATCH_UNLOCKED.name().equals(order.getStatus())) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(),
+                    "payment declaration is only available after service fee paid");
+        }
+        Order update = new Order();
+        update.setId(orderId);
+        update.setEmployerDeclaredPaid(1);
+        update.setEmployerDeclaredPaidTime(LocalDateTime.now());
+        orderMapper.updateById(update);
+        saveStatusLog(orderId, order.getStatus(), order.getStatus(), employerId,
+                StringUtils.hasText(remark) ? remark : "employer declared external payment");
     }
 
     @Override
@@ -249,9 +324,11 @@ public class OrderServiceImpl implements OrderService {
             throw new BizException(ErrorCode.FORBIDDEN.getCode(), "only client can confirm complete");
         }
         if (!OrderStatus.IN_PROGRESS.name().equals(order.getStatus())) {
-            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "order can be completed only when status is IN_PROGRESS");
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(),
+                    "order can be completed only when status is IN_PROGRESS");
         }
-        updateOrderStatus(employerId, orderId, OrderStatus.COMPLETED, StringUtils.hasText(remark) ? remark : "order completed");
+        updateOrderStatus(employerId, orderId, OrderStatus.COMPLETED,
+                StringUtils.hasText(remark) ? remark : "order completed");
 
         Order update = new Order();
         update.setId(orderId);
@@ -300,8 +377,8 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderVO> listMyOrders(Long userId) {
         return orderMapper.selectList(new LambdaQueryWrapper<Order>()
-                        .and(wrapper -> wrapper.eq(Order::getEmployerId, userId).or().eq(Order::getWorkerUserId, userId))
-                        .orderByDesc(Order::getCreatedTime))
+                .and(wrapper -> wrapper.eq(Order::getEmployerId, userId).or().eq(Order::getWorkerUserId, userId))
+                .orderByDesc(Order::getCreatedTime))
                 .stream()
                 .map(this::toVO)
                 .toList();
@@ -324,7 +401,9 @@ public class OrderServiceImpl implements OrderService {
         }
 
         OrderStatus currentStatus = parseStatus(order.getStatus());
-        boolean showContact = currentStatus == OrderStatus.MATCH_UNLOCKED
+        boolean showContact = currentStatus == OrderStatus.SERVICE_FEE_PAID
+                || currentStatus == OrderStatus.WAIT_WORKER_ACCEPT
+                || currentStatus == OrderStatus.MATCH_UNLOCKED
                 || currentStatus == OrderStatus.IN_PROGRESS
                 || currentStatus == OrderStatus.COMPLETED
                 || currentStatus == OrderStatus.DISPUTE
@@ -339,7 +418,7 @@ public class OrderServiceImpl implements OrderService {
         OrderDetailVO detailVO = new OrderDetailVO();
         detailVO.setOrder(toVO(order));
         detailVO.setShowContact(showContact);
-        detailVO.setShowChat(showContact ? currentStatus.canChat() : null);
+        detailVO.setShowChat(showContact ? Boolean.TRUE : null);
         detailVO.setRunnerDisplayName(workerProfile == null ? null : workerProfile.getRealName());
         detailVO.setRunnerContact(showContact && workerUser != null ? workerUser.getEmail() : null);
         detailVO.setRunnerPaymentProfile(showContact ? paymentProfile : null);
@@ -353,11 +432,56 @@ public class OrderServiceImpl implements OrderService {
             throw new BizException(ErrorCode.FORBIDDEN.getCode(), "no permission on this order");
         }
         return orderStatusLogMapper.selectList(new LambdaQueryWrapper<OrderStatusLog>()
-                        .eq(OrderStatusLog::getOrderId, orderId)
-                        .orderByAsc(OrderStatusLog::getCreatedTime))
+                .eq(OrderStatusLog::getOrderId, orderId)
+                .orderByAsc(OrderStatusLog::getCreatedTime))
                 .stream()
                 .map(this::toLogVO)
                 .toList();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public OrderBatchDeleteResultVO deleteMyFinishedOrders(Long userId, List<Long> orderIds) {
+        OrderBatchDeleteResultVO result = new OrderBatchDeleteResultVO();
+        if (orderIds == null || orderIds.isEmpty()) {
+            return result;
+        }
+        Set<Long> uniqueIds = new HashSet<>();
+        List<Long> blockedIds = new ArrayList<>();
+        int deletedCount = 0;
+
+        for (Long orderId : orderIds) {
+            if (orderId != null) {
+                uniqueIds.add(orderId);
+            }
+        }
+
+        for (Long orderId : uniqueIds) {
+            Order order = orderMapper.selectById(orderId);
+            if (order == null) {
+                continue;
+            }
+            if (!userId.equals(order.getEmployerId())) {
+                blockedIds.add(orderId);
+                continue;
+            }
+            if (!isFinishedForDeletion(order.getStatus())) {
+                blockedIds.add(orderId);
+                continue;
+            }
+
+            Order update = new Order();
+            update.setId(orderId);
+            update.setDeleted(1);
+            orderMapper.updateById(update);
+            deletedCount++;
+        }
+
+        result.setRequestedCount(uniqueIds.size());
+        result.setDeletedCount(deletedCount);
+        result.setBlockedIds(blockedIds);
+        result.setBlockedCount(blockedIds.size());
+        return result;
     }
 
     private Order findById(Long orderId) {
@@ -387,6 +511,16 @@ public class OrderServiceImpl implements OrderService {
         } catch (Exception e) {
             throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "unknown order status: " + status);
         }
+    }
+
+    private boolean isFinishedForDeletion(String status) {
+        if (!StringUtils.hasText(status)) {
+            return false;
+        }
+        if (OrderStatus.CLOSED.name().equals(status)) {
+            return true;
+        }
+        return OrderStatus.COMPLETED.name().equals(status);
     }
 
     private void saveStatusLog(Long orderId, String fromStatus, String toStatus, Long operatorId, String remark) {
@@ -439,7 +573,14 @@ public class OrderServiceImpl implements OrderService {
         vo.setStatus(order.getStatus());
         vo.setServiceFeeStatus(order.getServiceFeeStatus());
         vo.setServiceFeeAmount(order.getServiceFeeAmount());
+        vo.setServiceFeeRmb(order.getServiceFeeRmb());
         vo.setServiceFeePaidTime(order.getServiceFeePaidTime());
+        vo.setLaborBudgetAmount(order.getLaborBudgetAmount());
+        vo.setLaborBudgetCurrency(order.getLaborBudgetCurrency());
+        vo.setEmployerDeclaredPaid(order.getEmployerDeclaredPaid());
+        vo.setEmployerDeclaredPaidTime(order.getEmployerDeclaredPaidTime());
+        vo.setWorkerConfirmedPaid(order.getWorkerConfirmedPaid());
+        vo.setWorkerConfirmedPaidTime(order.getWorkerConfirmedPaidTime());
         vo.setPayStatus(order.getPayStatus());
         vo.setPaymentChannel(order.getPaymentChannel());
         vo.setPlatformFeeRate(order.getPlatformFeeRate());

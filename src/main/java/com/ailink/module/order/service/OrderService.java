@@ -2,6 +2,7 @@ package com.ailink.module.order.service;
 
 import com.ailink.common.enums.OrderStatus;
 import com.ailink.module.order.dto.OrderCreateRequest;
+import com.ailink.module.order.vo.OrderBatchDeleteResultVO;
 import com.ailink.module.order.vo.OrderDetailVO;
 import com.ailink.module.order.vo.OrderVO;
 import com.ailink.module.order.vo.OrderStatusLogVO;
@@ -20,6 +21,8 @@ public interface OrderService {
 
     void startWork(Long workerUserId, Long orderId, String remark);
 
+    void declareExternalPayment(Long employerId, Long orderId, String remark);
+
     void cancelByEmployer(Long employerId, Long orderId, String remark);
 
     void confirmComplete(Long employerId, Long orderId, String remark);
@@ -35,4 +38,6 @@ public interface OrderService {
     OrderDetailVO getMyOrderDetail(Long userId, Long orderId);
 
     List<OrderStatusLogVO> listMyOrderLogs(Long userId, Long orderId);
+
+    OrderBatchDeleteResultVO deleteMyFinishedOrders(Long userId, List<Long> orderIds);
 }

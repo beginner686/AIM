@@ -7,6 +7,15 @@ import com.ailink.module.ai.vo.AiDemandStructVO;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.ailink.module.demand.entity.Demand;
+import com.ailink.module.demand.mapper.DemandMapper;
+import com.ailink.module.order.entity.ChatMessage;
+import com.ailink.module.order.entity.Order;
+import com.ailink.module.order.mapper.ChatMessageMapper;
+import com.ailink.module.order.mapper.OrderMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -15,9 +24,16 @@ import java.util.Locale;
 public class AiServiceImpl implements AiService {
 
     private final OpenAiClient openAiClient;
+    private final OrderMapper orderMapper;
+    private final DemandMapper demandMapper;
+    private final ChatMessageMapper chatMessageMapper;
 
-    public AiServiceImpl(OpenAiClient openAiClient) {
+    public AiServiceImpl(OpenAiClient openAiClient, OrderMapper orderMapper,
+            DemandMapper demandMapper, ChatMessageMapper chatMessageMapper) {
         this.openAiClient = openAiClient;
+        this.orderMapper = orderMapper;
+        this.demandMapper = demandMapper;
+        this.chatMessageMapper = chatMessageMapper;
     }
 
     @Override
@@ -54,5 +70,49 @@ public class AiServiceImpl implements AiService {
                 "Create escrow order before execution.");
 
         return new AiDemandStructVO(structured, riskTips, nextSteps);
+    }
+
+    @Override
+    public String generateSmartMilestones(String structuredDemand) {
+        if (!StringUtils.hasText(structuredDemand)) {
+            return "Please follow standard milestone guidelines.";
+        }
+        return openAiClient.generateSmartMilestones(structuredDemand);
+    }
+
+    @Override
+    public String generateDisputeArbitrationReport(Long orderId) {
+        Order order = orderMapper.selectById(orderId);
+        if (order == null) {
+            return "Order not found.";
+        }
+        Demand demand = demandMapper.selectById(order.getDemandId());
+
+        List<ChatMessage> chatMessages = chatMessageMapper.selectList(new LambdaQueryWrapper<ChatMessage>()
+                .eq(ChatMessage::getOrderId, orderId)
+                .orderByAsc(ChatMessage::getCreatedTime));
+
+        StringBuilder context = new StringBuilder();
+        context.append("--- Order Info ---\\n");
+        context.append("Amount: ").append(order.getAmount()).append("\\n");
+        context.append("Employer ID: ").append(order.getEmployerId()).append("\\n");
+        context.append("Worker ID: ").append(order.getWorkerUserId()).append("\\n");
+
+        if (demand != null) {
+            context.append("\\n--- Demand Target ---\\n");
+            context.append("Category: ").append(demand.getCategory()).append("\\n");
+            context.append("Structured Goals: ").append(demand.getAiStructured()).append("\\n");
+        }
+
+        context.append("\\n--- Chat Evidence ---\\n");
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        for (ChatMessage msg : chatMessages) {
+            String timeStr = msg.getCreatedTime() != null ? dtf.format(msg.getCreatedTime()) : "";
+            context.append("[").append(timeStr).append("] ")
+                    .append("User ").append(msg.getSenderId()).append(": ")
+                    .append(msg.getContent()).append("\\n");
+        }
+
+        return openAiClient.generateDisputeArbitrationReport(context.toString());
     }
 }

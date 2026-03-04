@@ -158,6 +158,11 @@ public class ServiceFeeServiceImpl implements ServiceFeeService {
             order.setPayStatus("PAID");
             orderMapper.updateById(order);
 
+            if (OrderStatus.SERVICE_FEE_REQUIRED.name().equals(order.getStatus())) {
+                orderService.updateOrderStatus(order.getEmployerId(), order.getId(), OrderStatus.SERVICE_FEE_PAID,
+                        "service fee paid");
+                order = orderMapper.selectByIdForUpdate(order.getId());
+            }
             if (!OrderStatus.WAIT_WORKER_ACCEPT.name().equals(order.getStatus())) {
                 orderService.updateOrderStatus(order.getEmployerId(), order.getId(), OrderStatus.WAIT_WORKER_ACCEPT,
                         "service fee paid, waiting worker accept");

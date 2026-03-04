@@ -8,3 +8,6 @@ ailink-web/dist/
 # 项目文档（不上传到远程仓库）
 AI-Link-Real-Profit-Mode-CTO.md
 AI-Link-SpringBoot-Vue-Architecture.md
+
+# 本地密钥配置
+src/main/resources/application.yml

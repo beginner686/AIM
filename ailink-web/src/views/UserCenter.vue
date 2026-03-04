@@ -71,7 +71,12 @@
         </div>
         <el-form :model="workerApplyForm" label-width="100px" class="worker-apply-form">
           <el-form-item :label="t('userCenter.fieldCountry')">
-            <el-input v-model.trim="workerApplyForm.country" :placeholder="t('userCenter.placeholderCountry')" />
+            <el-input
+              v-model.trim="workerApplyForm.country"
+              :placeholder="t('userCenter.placeholderCountry')"
+              readonly
+            />
+            <div class="worker-apply-hint">{{ t('userCenter.workerApplyCountryAutoHint') }}</div>
           </el-form-item>
           <el-form-item :label="t('userCenter.fieldCity')">
             <el-input v-model.trim="workerApplyForm.city" :placeholder="t('userCenter.placeholderCity')" />
@@ -85,12 +90,6 @@
               <span>~</span>
               <el-input-number v-model="workerApplyForm.priceMax" :min="0" :precision="2" />
             </div>
-          </el-form-item>
-          <el-form-item :label="t('userCenter.fieldRealName')">
-            <el-input v-model.trim="workerApplyForm.realName" :placeholder="t('userCenter.placeholderRealName')" />
-          </el-form-item>
-          <el-form-item :label="t('userCenter.fieldIdHash')">
-            <el-input v-model.trim="workerApplyForm.idNoHash" :placeholder="t('userCenter.placeholderIdHash')" />
           </el-form-item>
           <el-form-item :label="t('userCenter.fieldExperience')">
             <el-input
@@ -112,11 +111,36 @@
               :placeholder="t('userCenter.placeholderApplyNote')"
             />
           </el-form-item>
+          <el-form-item :label="t('userCenter.fieldApplyAttachment')">
+            <div class="worker-apply-attachment-wrap">
+              <el-upload
+                class="worker-apply-upload"
+                action="#"
+                :show-file-list="false"
+                :accept="workerApplyAttachmentAccept"
+                :before-upload="beforeWorkerApplyAttachmentUpload"
+                :http-request="uploadWorkerApplyAttachment"
+              >
+                <el-button
+                  type="primary"
+                  plain
+                  :loading="workerApplyAttachmentUploading"
+                >
+                  {{ workerApplyForm.applyAttachmentName ? t('userCenter.replaceAttachment') : t('userCenter.uploadAttachment') }}
+                </el-button>
+              </el-upload>
+              <div class="worker-apply-hint">{{ t('userCenter.applyAttachmentTip') }}</div>
+              <div v-if="workerApplyForm.applyAttachmentName" class="worker-apply-attachment-item">
+                <span class="attachment-name">{{ workerApplyForm.applyAttachmentName }}</span>
+                <el-button link type="danger" @click="clearWorkerApplyAttachment">{{ t('userCenter.clearAttachment') }}</el-button>
+              </div>
+            </div>
+          </el-form-item>
           <el-form-item>
             <el-button
               type="primary"
               :loading="workerApplySubmitting"
-              :disabled="!canSubmitWorkerApply"
+              :disabled="!canSubmitWorkerApply || workerApplyAttachmentUploading"
               @click="submitWorkerApply"
             >
               {{ workerApplyInfo?.status === 'REJECTED' ? t('userCenter.resubmitApply') : t('userCenter.submitApply') }}
@@ -209,37 +233,80 @@
         </div>
       </template>
 
-      <el-form v-loading="runnerPaymentLoading" :model="runnerPaymentForm" label-width="110px" class="runner-payment-form">
-        <el-form-item label="PayPal Email">
-          <el-input v-model.trim="runnerPaymentForm.paypalEmail" placeholder="name@example.com" />
+      <el-alert
+        class="runner-payment-risk-alert"
+        type="warning"
+        :title="t('userCenter.paymentPrivacyNotice')"
+        :closable="false"
+        show-icon
+      />
+      <el-form v-loading="runnerPaymentLoading" :model="runnerPaymentForm" label-width="140px" class="runner-payment-form">
+        <el-form-item :label="t('userCenter.paymentFieldPaypalEmail')">
+          <el-input v-model.trim="runnerPaymentForm.paypalEmail" :placeholder="t('userCenter.paymentPlaceholderPaypalEmail')" />
         </el-form-item>
-        <el-form-item label="Wise Link">
-          <el-input v-model.trim="runnerPaymentForm.wiseLink" placeholder="https://wise.com/..." />
+        <el-form-item :label="t('userCenter.paymentFieldWiseId')">
+          <el-input v-model.trim="runnerPaymentForm.wiseId" :placeholder="t('userCenter.paymentPlaceholderWiseId')" />
         </el-form-item>
-        <el-form-item label="Payment URL">
-          <el-input v-model.trim="runnerPaymentForm.paymentUrl" placeholder="https://..." />
+        <el-form-item :label="t('userCenter.paymentFieldWiseLink')">
+          <el-input v-model.trim="runnerPaymentForm.wiseLink" :placeholder="t('userCenter.paymentPlaceholderWiseLink')" />
         </el-form-item>
-        <el-form-item label="Currency">
-          <el-input v-model.trim="runnerPaymentForm.currency" placeholder="CNY / USD" />
+        <el-form-item :label="t('userCenter.paymentFieldPayoneerLink')">
+          <el-input v-model.trim="runnerPaymentForm.payoneerLink" :placeholder="t('userCenter.paymentPlaceholderPayoneerLink')" />
+        </el-form-item>
+        <el-form-item :label="t('userCenter.paymentFieldCryptoWallet')">
+          <el-input v-model.trim="runnerPaymentForm.cryptoWallet" :placeholder="t('userCenter.paymentPlaceholderCryptoWallet')" />
+        </el-form-item>
+        <el-form-item :label="t('userCenter.paymentFieldPaymentUrl')">
+          <el-input v-model.trim="runnerPaymentForm.paymentUrl" :placeholder="t('userCenter.paymentPlaceholderPaymentUrl')" />
+        </el-form-item>
+        <el-form-item :label="t('userCenter.paymentFieldCurrency')">
+          <el-input v-model.trim="runnerPaymentForm.currency" :placeholder="t('userCenter.paymentPlaceholderCurrency')" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="runnerPaymentSaving" @click="saveRunnerPaymentProfile">{{ t('userCenter.savePayment') }}</el-button>
-          <el-link v-if="runnerPaymentForm.wiseLink" :href="runnerPaymentForm.wiseLink" target="_blank" type="primary">{{ t('userCenter.openWise') }}</el-link>
-          <el-link v-if="runnerPaymentForm.paymentUrl" :href="runnerPaymentForm.paymentUrl" target="_blank" type="primary">{{ t('userCenter.openPaymentLink') }}</el-link>
+          <el-link v-if="runnerPaymentForm.wiseLink" type="primary" @click.prevent="openExternalPayoutLink(runnerPaymentForm.wiseLink)">{{ t('userCenter.openWise') }}</el-link>
+          <el-link v-if="runnerPaymentForm.payoneerLink" type="primary" @click.prevent="openExternalPayoutLink(runnerPaymentForm.payoneerLink)">{{ t('userCenter.openPayoneer') }}</el-link>
+          <el-link v-if="runnerPaymentForm.paymentUrl" type="primary" @click.prevent="openExternalPayoutLink(runnerPaymentForm.paymentUrl)">{{ t('userCenter.openPaymentLink') }}</el-link>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <el-dialog v-model="showEditDialog" :title="t('userCenter.editDialogTitle')" width="460px" destroy-on-close>
-      <el-form :model="editForm" label-width="80px" label-position="left">
+    <el-dialog
+      v-model="showEditDialog"
+      :title="t('userCenter.editDialogTitle')"
+      width="560px"
+      class="ucx-edit-dialog"
+      destroy-on-close
+    >
+      <p class="ucx-edit-subtitle">{{ t('userCenter.editDialogSubtitle') }}</p>
+      <el-form :model="editForm" label-position="top" class="ucx-edit-form">
         <el-form-item :label="t('userCenter.fieldEmail')">
-          <el-input v-model="editForm.email" :placeholder="t('userCenter.placeholderEmail')" />
+          <el-input v-model.trim="editForm.email" :placeholder="t('userCenter.placeholderEmail')" />
         </el-form-item>
         <el-form-item :label="t('userCenter.fieldCountry')">
-          <el-input v-model="editForm.country" :placeholder="t('userCenter.placeholderInputCountry')" />
+          <el-select
+            v-model="editForm.country"
+            filterable
+            clearable
+            :loading="countryLoading"
+            :placeholder="t('userCenter.placeholderCountry')"
+            class="ucx-country-select"
+          >
+            <el-option
+              v-for="item in countryOptions"
+              :key="item.code"
+              :label="item.label"
+              :value="item.code"
+            >
+              <div class="ucx-country-option">
+                <span>{{ item.label }}</span>
+                <span class="ucx-country-code">{{ item.code }}</span>
+              </div>
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item :label="t('userCenter.fieldCity')">
-          <el-input v-model="editForm.city" :placeholder="t('userCenter.placeholderInputCity')" />
+          <el-input v-model.trim="editForm.city" :placeholder="t('userCenter.placeholderInputCity')" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -257,10 +324,11 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Edit } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/store/modules/user';
+import { getCountryDictApi } from '@/api/dict';
 import { getCurrentUserApi, updateUserProfileApi } from '@/api/user';
 import { cancelDemandApi, getMyDemandListApi } from '@/api/demand';
 import { getMyRunnerPaymentProfileApi, upsertMyRunnerPaymentProfileApi } from '@/api/runner';
-import { getMyWorkerApplyApi, submitWorkerApplyApi } from '@/api/workerApply';
+import { getMyWorkerApplyApi, submitWorkerApplyApi, uploadWorkerApplyAttachmentApi } from '@/api/workerApply';
 import {
   DEMAND_ACTIVE_STATUSES,
   DEMAND_OPEN_STATUSES,
@@ -275,7 +343,7 @@ import { formatMoney } from '@/utils/format';
 
 const router = useRouter();
 const userStore = useUserStore();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const userInfo = ref(null);
 const myDemands = ref([]);
@@ -289,17 +357,24 @@ const editForm = ref({
   country: '',
   city: '',
 });
+const countryLoading = ref(false);
+const countryOptions = ref([]);
 const runnerPaymentLoading = ref(false);
 const runnerPaymentSaving = ref(false);
 const runnerPaymentForm = ref({
   paypalEmail: '',
+  wiseId: '',
   wiseLink: '',
+  payoneerLink: '',
+  cryptoWallet: '',
   paymentUrl: '',
   currency: 'CNY',
 });
 const workerApplyLoading = ref(false);
 const workerApplySubmitting = ref(false);
+const workerApplyAttachmentUploading = ref(false);
 const workerApplyInfo = ref(null);
+const workerApplyAttachmentAccept = '.doc,.docx,.jpg,.jpeg,.png';
 const workerApplyForm = ref({
   country: '',
   city: '',
@@ -307,10 +382,12 @@ const workerApplyForm = ref({
   priceMin: 0,
   priceMax: 0,
   experience: '',
-  realName: '',
-  idNoHash: '',
   applyNote: '',
+  applyAttachmentName: '',
+  applyAttachmentUrl: '',
 });
+const WORKER_APPLY_ATTACHMENT_MAX_SIZE = 5 * 1024 * 1024;
+const WORKER_APPLY_ATTACHMENT_EXTENSIONS = ['doc', 'docx', 'jpg', 'jpeg', 'png'];
 
 const demandStatusOptions = computed(() => toSelectOptions(DEMAND_STATUS_DICT));
 
@@ -326,8 +403,19 @@ const roleTagType = computed(() => {
   return getRoleTag(userInfo.value?.role);
 });
 
+const countryLabelMap = computed(() => {
+  const map = new Map();
+  countryOptions.value.forEach((item) => {
+    const code = String(item?.code || '').trim().toUpperCase();
+    const label = String(item?.label || '').trim();
+    if (code) map.set(code, label);
+    if (label) map.set(label.toLowerCase(), code);
+  });
+  return map;
+});
+
 const locationText = computed(() => {
-  const country = userInfo.value?.country || '';
+  const country = getCountryLabel(userInfo.value?.country || '');
   const city = userInfo.value?.city || '';
   if (country && city) return `${country} · ${city}`;
   return country || city || t('userCenter.dash');
@@ -376,14 +464,107 @@ const totalBudget = computed(
   () => myDemands.value.reduce((sum, item) => sum + Number(item?.budget || 0), 0),
 );
 
+function parseCountryExtra(extraJson) {
+  if (!extraJson) return {};
+  try {
+    const parsed = JSON.parse(extraJson);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function localizeCountryLabel(code, fallbackLabel) {
+  const regionCode = String(code || '').trim().toUpperCase();
+  const fallback = String(fallbackLabel || '').trim();
+  if (!regionCode) return fallback;
+  try {
+    const displayNames = new Intl.DisplayNames([locale.value], { type: 'region' });
+    return displayNames.of(regionCode) || fallback || regionCode;
+  } catch {
+    return fallback || regionCode;
+  }
+}
+
+function getCountryLabel(rawCountry) {
+  const country = String(rawCountry || '').trim();
+  if (!country) return '';
+  if (/^[A-Za-z]{2}$/.test(country)) {
+    const code = country.toUpperCase();
+    return countryLabelMap.value.get(code) || localizeCountryLabel(code, code);
+  }
+  const mappedCode = countryLabelMap.value.get(country.toLowerCase());
+  if (mappedCode) {
+    return countryLabelMap.value.get(mappedCode) || country;
+  }
+  return country;
+}
+
+function normalizeCountryForForm(rawCountry) {
+  const country = String(rawCountry || '').trim();
+  if (!country) return '';
+  if (/^[A-Za-z]{2}$/.test(country)) {
+    return country.toUpperCase();
+  }
+  const mappedCode = countryLabelMap.value.get(country.toLowerCase());
+  return mappedCode || '';
+}
+
+async function loadCountryOptions() {
+  countryLoading.value = true;
+  try {
+    const data = await getCountryDictApi();
+    const list = Array.isArray(data) ? data : [];
+    const mapped = list
+      .map((item, index) => {
+        const code = String(item?.dict_code || item?.dictCode || '').trim().toUpperCase();
+        const rawLabel = String(item?.dict_label || item?.dictLabel || '').trim();
+        const label = localizeCountryLabel(code, rawLabel);
+        const sortNo = Number(item?.sort_no ?? item?.sortNo ?? (index + 1) * 10);
+        const extra = parseCountryExtra(item?.extra_json || item?.extraJson || '');
+        return {
+          code,
+          label,
+          sortNo,
+          hot: Boolean(extra?.hot),
+        };
+      })
+      .filter((item) => /^[A-Z]{2}$/.test(item.code) && item.label);
+
+    const dedup = new Map();
+    mapped.forEach((item) => {
+      if (!dedup.has(item.code)) {
+        dedup.set(item.code, item);
+      }
+    });
+    countryOptions.value = Array.from(dedup.values()).sort((a, b) => {
+      if (a.hot !== b.hot) return a.hot ? -1 : 1;
+      if (a.sortNo !== b.sortNo) return a.sortNo - b.sortNo;
+      return a.code.localeCompare(b.code);
+    });
+  } catch {
+    countryOptions.value = [];
+    ElMessage.error(t('userCenter.countryLoadFailed'));
+  } finally {
+    countryLoading.value = false;
+  }
+}
+
 watch(showEditDialog, (visible) => {
   if (!visible || !userInfo.value) return;
   editForm.value = {
     email: userInfo.value.email || '',
-    country: userInfo.value.country || '',
+    country: normalizeCountryForForm(userInfo.value.country || ''),
     city: userInfo.value.city || '',
   };
 });
+
+watch(
+  () => userInfo.value?.country,
+  () => {
+    syncWorkerApplyCountryFromProfile();
+  },
+);
 
 function formatDate(value) {
   if (!value) return '—';
@@ -408,8 +589,10 @@ async function loadUserProfile() {
     const data = await getCurrentUserApi();
     userInfo.value = data || {};
     userStore.setUserInfo(data || {});
+    syncWorkerApplyCountryFromProfile();
   } catch {
     userInfo.value = userStore.userInfo || {};
+    syncWorkerApplyCountryFromProfile();
   }
 }
 
@@ -491,7 +674,12 @@ async function handleCancelDemand(item) {
 async function handleSave() {
   saving.value = true;
   try {
-    await updateUserProfileApi(editForm.value);
+    const payload = {
+      email: String(editForm.value.email || '').trim(),
+      country: String(editForm.value.country || '').trim().toUpperCase(),
+      city: String(editForm.value.city || '').trim(),
+    };
+    await updateUserProfileApi(payload);
     await loadUserProfile();
     showEditDialog.value = false;
     ElMessage.success(t('userCenter.profileUpdated'));
@@ -503,17 +691,88 @@ async function handleSave() {
 }
 
 function fillWorkerApplyForm(source = {}) {
+  const profileCountry = getProfileCountryForWorkerApply();
   workerApplyForm.value = {
-    country: source?.country || userInfo.value?.country || '',
+    country: profileCountry || source?.country || '',
     city: source?.city || userInfo.value?.city || '',
     skillTags: source?.skillTags || '',
     priceMin: Number(source?.priceMin || 0),
     priceMax: Number(source?.priceMax || 0),
     experience: source?.experience || '',
-    realName: source?.realName || '',
-    idNoHash: source?.idNoHash || '',
     applyNote: source?.applyNote || '',
+    applyAttachmentName: source?.applyAttachmentName || '',
+    applyAttachmentUrl: source?.applyAttachmentUrl || '',
   };
+}
+
+function getProfileCountryForWorkerApply() {
+  const normalized = normalizeCountryForForm(userInfo.value?.country || '');
+  if (normalized) {
+    return normalized;
+  }
+  return String(userInfo.value?.country || '').trim();
+}
+
+function syncWorkerApplyCountryFromProfile() {
+  const profileCountry = getProfileCountryForWorkerApply();
+  if (!profileCountry) {
+    return;
+  }
+  workerApplyForm.value.country = profileCountry;
+}
+
+function getFileExtension(filename) {
+  const name = String(filename || '').trim();
+  const dotIndex = name.lastIndexOf('.');
+  if (dotIndex < 0 || dotIndex === name.length - 1) {
+    return '';
+  }
+  return name.slice(dotIndex + 1).toLowerCase();
+}
+
+function beforeWorkerApplyAttachmentUpload(rawFile) {
+  const ext = getFileExtension(rawFile?.name || '');
+  if (!WORKER_APPLY_ATTACHMENT_EXTENSIONS.includes(ext)) {
+    ElMessage.warning(t('userCenter.attachmentTypeInvalid'));
+    return false;
+  }
+  const size = Number(rawFile?.size || 0);
+  if (size > WORKER_APPLY_ATTACHMENT_MAX_SIZE) {
+    ElMessage.warning(t('userCenter.attachmentTooLarge'));
+    return false;
+  }
+  return true;
+}
+
+async function uploadWorkerApplyAttachment(uploadOption) {
+  const file = uploadOption?.file;
+  if (!file) {
+    return;
+  }
+  workerApplyAttachmentUploading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const data = await uploadWorkerApplyAttachmentApi(formData);
+    workerApplyForm.value.applyAttachmentName = data?.fileName || file.name || '';
+    workerApplyForm.value.applyAttachmentUrl = data?.fileUrl || '';
+    ElMessage.success(t('userCenter.attachmentUploadSuccess'));
+    if (typeof uploadOption?.onSuccess === 'function') {
+      uploadOption.onSuccess(data);
+    }
+  } catch (error) {
+    if (typeof uploadOption?.onError === 'function') {
+      uploadOption.onError(error);
+    }
+    ElMessage.error(t('userCenter.attachmentUploadFailed'));
+  } finally {
+    workerApplyAttachmentUploading.value = false;
+  }
+}
+
+function clearWorkerApplyAttachment() {
+  workerApplyForm.value.applyAttachmentName = '';
+  workerApplyForm.value.applyAttachmentUrl = '';
 }
 
 async function loadWorkerApply() {
@@ -539,7 +798,7 @@ async function submitWorkerApply() {
     return;
   }
   if (!workerApplyForm.value.country || !workerApplyForm.value.city || !workerApplyForm.value.skillTags
-    || !workerApplyForm.value.realName || !workerApplyForm.value.idNoHash) {
+  ) {
     ElMessage.warning(t('userCenter.fillRequired'));
     return;
   }
@@ -556,9 +815,9 @@ async function submitWorkerApply() {
       priceMin: Number(workerApplyForm.value.priceMin || 0),
       priceMax: Number(workerApplyForm.value.priceMax || 0),
       experience: String(workerApplyForm.value.experience || '').trim(),
-      realName: String(workerApplyForm.value.realName || '').trim(),
-      idNoHash: String(workerApplyForm.value.idNoHash || '').trim(),
       applyNote: String(workerApplyForm.value.applyNote || '').trim(),
+      applyAttachmentName: String(workerApplyForm.value.applyAttachmentName || '').trim(),
+      applyAttachmentUrl: String(workerApplyForm.value.applyAttachmentUrl || '').trim(),
     };
     await submitWorkerApplyApi(payload);
     ElMessage.success(t('userCenter.applySubmitSuccess'));
@@ -579,20 +838,39 @@ async function loadRunnerPaymentProfile() {
     const data = await getMyRunnerPaymentProfileApi();
     runnerPaymentForm.value = {
       paypalEmail: data?.paypalEmail || '',
+      wiseId: data?.wiseId || '',
       wiseLink: data?.wiseLink || '',
+      payoneerLink: data?.payoneerLink || '',
+      cryptoWallet: data?.cryptoWallet || '',
       paymentUrl: data?.paymentUrl || '',
       currency: data?.currency || 'CNY',
     };
   } catch {
     runnerPaymentForm.value = {
       paypalEmail: '',
+      wiseId: '',
       wiseLink: '',
+      payoneerLink: '',
+      cryptoWallet: '',
       paymentUrl: '',
       currency: 'CNY',
     };
   } finally {
     runnerPaymentLoading.value = false;
   }
+}
+
+async function openExternalPayoutLink(url) {
+  const target = String(url || '').trim();
+  if (!target) return;
+  try {
+    await ElMessageBox.confirm(t('userCenter.paymentRiskMessage'), t('userCenter.paymentRiskTitle'), {
+      type: 'warning',
+      confirmButtonText: t('userCenter.paymentContinueOpen'),
+      cancelButtonText: t('userCenter.cancel'),
+    });
+    window.open(target, '_blank', 'noopener,noreferrer');
+  } catch {}
 }
 
 async function saveRunnerPaymentProfile() {
@@ -612,6 +890,7 @@ async function saveRunnerPaymentProfile() {
 }
 
 onMounted(async () => {
+  await loadCountryOptions();
   await loadUserProfile();
   await Promise.allSettled([loadDemands(), loadRunnerPaymentProfile(), loadWorkerApply()]);
 });
@@ -929,7 +1208,12 @@ onMounted(async () => {
 }
 
 .runner-payment-form {
+  margin-top: 12px;
   max-width: 720px;
+}
+
+.runner-payment-risk-alert {
+  margin-bottom: 8px;
 }
 
 .worker-apply-wrap {
@@ -962,6 +1246,33 @@ onMounted(async () => {
   color: #64748b;
 }
 
+.worker-apply-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6a8396;
+}
+
+.worker-apply-attachment-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.worker-apply-upload {
+  width: fit-content;
+}
+
+.worker-apply-attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.worker-apply-attachment-item .attachment-name {
+  font-size: 13px;
+  color: #334155;
+}
+
 .action-btn {
   border-radius: 999px;
   padding: 8px 16px;
@@ -971,6 +1282,77 @@ onMounted(async () => {
 .ucx-demand-actions :deep(.el-button) {
   border-radius: 999px;
   padding: 8px 16px;
+}
+
+.ucx-edit-dialog .el-dialog {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(194, 215, 244, 0.85);
+  box-shadow: 0 24px 48px rgba(19, 44, 84, 0.18);
+}
+
+.ucx-edit-dialog .el-dialog__header {
+  margin: 0;
+  padding: 18px 22px 12px;
+  background:
+    radial-gradient(circle at 16% -40%, rgba(99, 181, 255, 0.45), transparent 48%),
+    linear-gradient(135deg, #f5faff 0%, #eef5ff 100%);
+  border-bottom: 1px solid rgba(194, 215, 244, 0.7);
+}
+
+.ucx-edit-dialog .el-dialog__title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #123059;
+}
+
+.ucx-edit-dialog .el-dialog__body {
+  padding: 16px 22px 12px;
+  background: linear-gradient(180deg, #fcfeff 0%, #f7fbff 100%);
+}
+
+.ucx-edit-subtitle {
+  margin: 0 0 14px;
+  color: #587293;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ucx-edit-form .el-form-item {
+  margin-bottom: 14px;
+}
+
+.ucx-edit-form .el-form-item__label {
+  font-weight: 700;
+  color: #1a3e67;
+}
+
+.ucx-country-select {
+  width: 100%;
+}
+
+.ucx-country-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ucx-country-code {
+  font-size: 11px;
+  color: #6e88a8;
+  border: 1px solid rgba(173, 196, 229, 0.8);
+  border-radius: 999px;
+  padding: 2px 8px;
+  line-height: 1.2;
+}
+
+.ucx-edit-dialog .el-dialog__footer {
+  margin: 0;
+  padding: 12px 22px 18px;
+  border-top: 1px solid rgba(207, 223, 245, 0.65);
+  background: linear-gradient(180deg, #f8fbff 0%, #f4f8ff 100%);
 }
 
 /* 深度定制表单输入框样式 */

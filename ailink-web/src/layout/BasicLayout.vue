@@ -26,6 +26,7 @@
           <button class="logout-btn" @click="logout">{{ $t('layout.logout') }}</button>
         </div>
       </div>
+      <div class="header-rgb-border"></div>
     </header>
     <main class="main-content">
       <router-view />
@@ -91,13 +92,43 @@ function logout() {
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.4);
 }
+
+.header-rgb-border {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    #3b82f6,
+    #8b5cf6,
+    #ec4899,
+    #3b82f6,
+    #06b6d4,
+    #3b82f6
+  );
+  background-size: 200% 100%;
+  animation: rgbFlow 4s linear infinite;
+  opacity: 0.8;
+}
+
+@keyframes rgbFlow {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 
 .header-inner {
   max-width: 1320px;
   margin: 0 auto;
-  height: 78px;
+  height: 140px;
   padding: 0 32px;
   display: flex;
   align-items: center;
@@ -113,14 +144,10 @@ function logout() {
   flex-shrink: 0;
 }
 .brand-logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
+  width: 128px;
+  height: 128px;
+  border-radius: 10px;
   overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.08);
 }
 .brand-logo img {
   width: 100%;
@@ -128,9 +155,9 @@ function logout() {
   object-fit: cover;
 }
 .brand-text {
-  font-size: 34px;
-  font-weight: 800;
-  color: var(--color-text);
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
   letter-spacing: -0.5px;
   line-height: 1;
 }
@@ -143,8 +170,8 @@ function logout() {
 }
 .nav-link {
   position: relative;
-  padding: 10px 18px;
-  font-size: 20px;
+  padding: 8px 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-secondary);
   border-radius: 10px;
@@ -176,25 +203,25 @@ function logout() {
   background: var(--color-bg);
 }
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, #0b4b6f, #0f766e);
   color: #ffffff;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .user-name {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
 }
 .logout-btn {
-  padding: 9px 18px;
-  font-size: 18px;
+  padding: 6px 14px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-secondary);
   background: transparent;

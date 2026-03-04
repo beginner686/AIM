@@ -11,7 +11,7 @@
         </h1>
         <p class="sub">{{ t('workerPool.subtitle') }}</p>
         <div class="hero-tags reveal-up delay-1">
-          <span class="chip">{{ t('workerPool.onlineResources') }} {{ workers.length }}</span>
+          <span class="chip">{{ t('workerPool.onlineResources') }} {{ displayedWorkers.length }}</span>
           <span class="chip">{{ t('workerPool.avgRating') }} {{ avgRating.toFixed(1) }}</span>
           <span class="chip">{{ t('workerPool.demandId') }} {{ demandId || t('workerPool.notProvided') }}</span>
         </div>
@@ -167,17 +167,29 @@
       <template #header>
         <div class="section-head">
           <h2>{{ t('workerPool.listTitle') }}</h2>
-          <span class="count">{{ t('workerPool.totalWorkers', { count: workers.length }) }}</span>
+          <div class="list-head-actions">
+            <el-input
+              v-model.trim="workerKeyword"
+              clearable
+              :placeholder="t('workerPool.searchWorkerPlaceholder')"
+              class="worker-search-input"
+            />
+            <span class="count">{{ t('workerPool.totalWorkers', { count: displayedWorkers.length }) }}</span>
+          </div>
         </div>
       </template>
 
       <div v-if="listLoading" class="loading-wrap">
         <el-skeleton :rows="4" animated />
       </div>
-      <el-empty v-else-if="workers.length === 0" :description="t('workerPool.empty')" :image-size="88" />
+      <el-empty
+        v-else-if="displayedWorkers.length === 0"
+        :description="workerKeyword ? t('workerPool.searchEmpty') : t('workerPool.empty')"
+        :image-size="88"
+      />
 
       <div v-else class="worker-grid">
-        <article v-for="row in workers" :key="row.workerId || row.id" class="worker-card reveal-up">
+        <article v-for="row in displayedWorkers" :key="row.workerId || row.id" class="worker-card reveal-up">
           <div class="worker-top">
             <div>
               <h3>{{ row.name }}</h3>
@@ -253,6 +265,7 @@ const demandInfo = ref(null);
 const demandLoadError = ref('');
 const demandFallbackActive = ref(false);
 const createLoadingMap = reactive({});
+const workerKeyword = ref('');
 const filters = reactive({
   country: '',
   category: '',
@@ -324,16 +337,26 @@ const countryLabelMap = computed(() => {
   return map;
 });
 
+const displayedWorkers = computed(() => {
+  const keyword = String(workerKeyword.value || '').trim().toLowerCase();
+  if (!keyword) return workers.value;
+  return workers.value.filter((item) => {
+    const workerId = String(getWorkerProfileId(item));
+    const workerName = String(item?.name || '').toLowerCase();
+    return workerName.includes(keyword) || workerId.includes(keyword);
+  });
+});
+
 const avgRating = computed(() => {
-  if (workers.value.length === 0) return 0;
-  const total = workers.value.reduce((sum, item) => sum + Number(item.rating || 0), 0);
-  return total / workers.value.length;
+  if (displayedWorkers.value.length === 0) return 0;
+  const total = displayedWorkers.value.reduce((sum, item) => sum + Number(item.rating || 0), 0);
+  return total / displayedWorkers.value.length;
 });
 
 const avgQuote = computed(() => {
-  if (workers.value.length === 0) return 0;
-  const total = workers.value.reduce((sum, item) => sum + getEstimatedAmount(item), 0);
-  return total / workers.value.length;
+  if (displayedWorkers.value.length === 0) return 0;
+  const total = displayedWorkers.value.reduce((sum, item) => sum + getEstimatedAmount(item), 0);
+  return total / displayedWorkers.value.length;
 });
 
 const currentUserId = computed(() => Number(userStore.userInfo?.id || 0));
@@ -621,7 +644,7 @@ async function handleCreateOrder(worker) {
       throw new Error(t('workerPool.orderIdMissing'));
     }
     ElMessage.success(t('workerPool.createSuccess'));
-    router.push(`/order/${orderId}`);
+    router.push(`/order/checkout/${orderId}`);
   } catch (error) {
     const message = String(error?.message || '').trim();
     if (message.toLowerCase().includes('only demand owner can create order')) {
@@ -800,6 +823,8 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .section-head h2 {
@@ -813,6 +838,18 @@ onMounted(async () => {
 .count {
   color: #65819e;
   font-size: 13.5px;
+}
+
+.list-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.worker-search-input {
+  width: 280px;
+  max-width: 100%;
 }
 
 .filter-form {

@@ -4,10 +4,12 @@ import com.ailink.common.Result;
 import com.ailink.common.ErrorCode;
 import com.ailink.common.exception.BizException;
 import com.ailink.module.order.dto.OrderActionRequest;
+import com.ailink.module.order.dto.OrderBatchDeleteRequest;
 import com.ailink.module.order.dto.OrderCreateRequest;
 import com.ailink.module.order.dto.ServiceFeePayRequest;
 import com.ailink.module.order.service.OrderService;
 import com.ailink.module.order.service.ServiceFeeService;
+import com.ailink.module.order.vo.OrderBatchDeleteResultVO;
 import com.ailink.module.order.vo.OrderDetailVO;
 import com.ailink.module.order.vo.OrderStatusLogVO;
 import com.ailink.module.order.vo.OrderVO;
@@ -62,6 +64,13 @@ public class OrderController {
         return Result.success();
     }
 
+    @PostMapping("/{orderId}/declare-paid")
+    public Result<Void> declarePaid(@PathVariable Long orderId, @RequestBody(required = false) OrderActionRequest request) {
+        ensureClientRole();
+        orderService.declareExternalPayment(SecurityContextUtil.currentUserId(), orderId, request == null ? null : request.getRemark());
+        return Result.success();
+    }
+
     @PostMapping("/{orderId}/accept")
     public Result<Void> acceptWork(@PathVariable Long orderId, @RequestBody(required = false) OrderActionRequest request) {
         ensureRunnerRole();
@@ -93,6 +102,12 @@ public class OrderController {
     @GetMapping("/my")
     public Result<List<OrderVO>> myOrders() {
         return Result.success(orderService.listMyOrders(SecurityContextUtil.currentUserId()));
+    }
+
+    @PostMapping("/my/delete")
+    public Result<OrderBatchDeleteResultVO> deleteMyOrders(@Valid @RequestBody OrderBatchDeleteRequest request) {
+        ensureClientRole();
+        return Result.success(orderService.deleteMyFinishedOrders(SecurityContextUtil.currentUserId(), request.getOrderIds()));
     }
 
     @GetMapping("/{orderId}")

@@ -9,10 +9,14 @@ import com.ailink.module.order.mapper.OrderMapper;
 import com.ailink.module.order.mapper.OrderReviewMapper;
 import com.ailink.module.order.service.OrderReviewService;
 import com.ailink.module.order.vo.OrderReviewVO;
+import com.ailink.module.user.entity.User;
+import com.ailink.module.user.mapper.UserMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -20,10 +24,12 @@ public class OrderReviewServiceImpl implements OrderReviewService {
 
     private final OrderMapper orderMapper;
     private final OrderReviewMapper orderReviewMapper;
+    private final UserMapper userMapper;
 
-    public OrderReviewServiceImpl(OrderMapper orderMapper, OrderReviewMapper orderReviewMapper) {
+    public OrderReviewServiceImpl(OrderMapper orderMapper, OrderReviewMapper orderReviewMapper, UserMapper userMapper) {
         this.orderMapper = orderMapper;
         this.orderReviewMapper = orderReviewMapper;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -51,6 +57,7 @@ public class OrderReviewServiceImpl implements OrderReviewService {
         review.setScore(score);
         review.setContent(content);
         orderReviewMapper.insert(review);
+        refreshReviewScore(review.getRevieweeId());
         return toVO(review);
     }
 
@@ -86,5 +93,25 @@ public class OrderReviewServiceImpl implements OrderReviewService {
         vo.setContent(review.getContent());
         vo.setCreatedTime(review.getCreatedTime());
         return vo;
+    }
+
+    private void refreshReviewScore(Long userId) {
+        if (userId == null) {
+            return;
+        }
+        List<OrderReview> reviews = orderReviewMapper.selectList(new LambdaQueryWrapper<OrderReview>()
+                .eq(OrderReview::getRevieweeId, userId));
+        if (reviews.isEmpty()) {
+            return;
+        }
+        BigDecimal total = BigDecimal.ZERO;
+        for (OrderReview review : reviews) {
+            total = total.add(BigDecimal.valueOf(review.getScore() == null ? 0 : review.getScore()));
+        }
+        BigDecimal avg = total.divide(BigDecimal.valueOf(reviews.size()), 2, RoundingMode.HALF_UP);
+        User update = new User();
+        update.setId(userId);
+        update.setReviewScore(avg);
+        userMapper.updateById(update);
     }
 }

@@ -17,7 +17,10 @@ public class RunnerPaymentProfile extends BaseEntity {
 
     private Long userId;
     private String paypalEmail;
+    private String wiseId;
     private String wiseLink;
+    private String payoneerLink;
+    private String cryptoWallet;
     private String paymentUrl;
     private String currency;
     private Integer verified;

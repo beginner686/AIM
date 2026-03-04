@@ -92,7 +92,6 @@
         <el-table v-else v-loading="workerApplyLoading" :data="workerApplyList" stripe>
           <el-table-column prop="id" label="申请ID" min-width="90" />
           <el-table-column prop="userId" label="用户ID" min-width="90" />
-          <el-table-column prop="realName" label="姓名" min-width="100" />
           <el-table-column label="地区" min-width="120">
             <template #default="{ row }">{{ row.country || '—' }} / {{ row.city || '—' }}</template>
           </el-table-column>

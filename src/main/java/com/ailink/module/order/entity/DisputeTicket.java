@@ -25,4 +25,5 @@ public class DisputeTicket extends BaseEntity {
     private Long resolverId;
     private String resolution;
     private LocalDateTime resolvedTime;
+    private String aiAnalysisReport;
 }

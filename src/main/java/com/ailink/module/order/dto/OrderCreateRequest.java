@@ -19,5 +19,7 @@ public class OrderCreateRequest {
     @DecimalMin(value = "0.01", message = "amount must be > 0")
     private BigDecimal amount;
 
+    private String laborBudgetCurrency;
+
     private String paymentChannel;
 }

@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName("user_account")
@@ -23,4 +25,6 @@ public class User extends BaseEntity {
     private String city;
     private Integer status;
     private String workerApplyStatus;
+    private BigDecimal reviewScore;
+    private String verifyStatus;
 }

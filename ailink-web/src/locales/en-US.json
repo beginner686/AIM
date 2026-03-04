@@ -18,5 +18,128 @@
         "platform": "Platform",
         "join": "Join Us",
         "copyright": "AI-Link · Global Cross-Border HR Service Platform"
+    },
+    "landing": {
+        "hero": {
+            "eyebrow": "GLOBAL TASK MARKETPLACE",
+            "title": "Connect Global Executors",
+            "subtitle": "Ensure Stable Cross-Border Fulfillment",
+            "desc": "AI-Link provides cross-border escrow, tracking, and collaboration for your teams. Transparent and controllable from publishing demands to settlement.",
+            "startBtn": "Start for Free",
+            "exploreBtn": "Explore Demands",
+            "metaP1": "Escrow mechanism ensures transaction security",
+            "metaP2": "Contact details unlock only after order acceptance"
+        },
+        "kpi": {
+            "title": "Live Platform Overview",
+            "live": "Live",
+            "demands": "Open Demands",
+            "workers": "Verified Executors",
+            "countries": "Countries Covered",
+            "signals": [
+                {
+                    "title": "Traceable Escrow",
+                    "desc": "Key milestones are automatically logged"
+                },
+                {
+                    "title": "Pre-order Privacy",
+                    "desc": "Contacts hidden until accepted"
+                },
+                {
+                    "title": "Visual Collaboration",
+                    "desc": "Progress and disputes are verifiable"
+                }
+            ]
+        },
+        "trust": {
+            "text": "Trusted by e-commerce, SaaS teams, independent brands, and agencies"
+        },
+        "value": {
+            "eyebrow": "PLATFORM CAPABILITIES",
+            "title": "Commercial-grade Fulfillment Experience",
+            "cards": [
+                {
+                    "title": "Escrow & Acceptance",
+                    "desc": "Funds are held in escrow after payment, progressing by status to reduce uncertainty."
+                },
+                {
+                    "title": "Smart Matching",
+                    "desc": "Quickly filter executors by country, skills, and price range to improve efficiency."
+                },
+                {
+                    "title": "Cross-Border Collab",
+                    "desc": "Designed for multi-timezone teams, unifying order status and messages."
+                },
+                {
+                    "title": "Commercial Scalability",
+                    "desc": "Supports single tasks to long-term collaboration, building a stable network."
+                }
+            ]
+        },
+        "category": {
+            "eyebrow": "TRENDING CATEGORIES",
+            "title": "High-Frequency Scenarios",
+            "viewAll": "View Full Directory",
+            "cards": [
+                {
+                    "name": "Localization Translation",
+                    "tag": "High Demand",
+                    "desc": "Copywriting, pages, and script adaptation for local languages."
+                },
+                {
+                    "name": "Overseas Advertising",
+                    "tag": "Performance",
+                    "desc": "Multi-channel ad optimization and local creative testing."
+                },
+                {
+                    "name": "Video Editing",
+                    "tag": "Creative",
+                    "desc": "Short video and ad iteration tailored to market preferences."
+                },
+                {
+                    "name": "Customer Support",
+                    "tag": "Operation",
+                    "desc": "Cross-lingual pre-sales and after-sales support."
+                },
+                {
+                    "name": "Social Media Ops",
+                    "tag": "Brand",
+                    "desc": "Account content publishing and daily engagement."
+                },
+                {
+                    "name": "Remote Assistant",
+                    "tag": "Execution",
+                    "desc": "Process execution, data sorting, and collaboration."
+                }
+            ]
+        },
+        "process": {
+            "eyebrow": "TRANSACTION PROCESS",
+            "title": "Clear Path from Publish to Fulfillment",
+            "steps": [
+                {
+                    "title": "Publish Demand",
+                    "desc": "Define country, category, budget, and delivery standards."
+                },
+                {
+                    "title": "Select Executor",
+                    "desc": "Filter based on capabilities, create orders, and lock collaboration."
+                },
+                {
+                    "title": "Pay & Accept",
+                    "desc": "Service fee paid into escrow, executor confirms and unlocks contact."
+                },
+                {
+                    "title": "Accept & Settle",
+                    "desc": "Review and rate upon completion to build long-term trust."
+                }
+            ]
+        },
+        "cta": {
+            "title": "Start Your Cross-Border Collaboration Now",
+            "desc": "Post demands, discover executors, and build global execution capabilities.",
+            "employerBtn": "I'm an Employer, Post a Task",
+            "workerBtn": "I'm an Executor, Apply to Join"
+        }
     }
 }

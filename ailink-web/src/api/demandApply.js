@@ -4,6 +4,7 @@ export function submitDemandApplyApi(demandId, data) {
   return request({
     url: `/demand/${demandId}/apply`,
     method: 'post',
+    silentBusinessError: true,
     data,
   });
 }
@@ -45,4 +46,3 @@ export function cancelDemandApplyApi(applyId) {
     method: 'post',
   });
 }
-

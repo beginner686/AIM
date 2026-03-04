@@ -60,6 +60,7 @@ const userNavItems = [
   { key: 'home', to: '/home', label: '首页' },
   { key: 'publish-demand', to: '/publish-demand', label: '发布需求' },
   { key: 'worker-pool', to: '/worker-pool', label: '执行者' },
+  { key: 'demand-applications', to: '/demand-applications', label: '需求申请' },
   { key: 'orders', to: '/orders', label: '我的订单' },
   { key: 'user-center', to: '/user-center', label: '个人中心' },
 ];

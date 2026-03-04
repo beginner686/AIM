@@ -88,7 +88,26 @@
             <span><el-icon><Location /></el-icon>{{ item.targetCountry || 'Global' }}</span>
             <span><el-icon><Clock /></el-icon>{{ formatDate(item.createdTime) }}</span>
           </div>
-          <div class="login-hint">登录后查看完整详情与操作</div>
+          <div class="card-actions">
+            <button
+              v-if="isLogin && canApplyDemand"
+              type="button"
+              class="apply-btn"
+              :disabled="Boolean(applyLoadingMap[item.id])"
+              @click.stop="handleApply(item)"
+            >
+              {{ applyLoadingMap[item.id] ? '提交中...' : '我来申请' }}
+            </button>
+            <button
+              v-else-if="!isLogin"
+              type="button"
+              class="apply-btn secondary"
+              @click.stop="handleCardClick"
+            >
+              登录后申请
+            </button>
+            <span v-else class="login-hint">通过执行者审核后可主动申请</span>
+          </div>
         </article>
       </div>
     </section>
@@ -96,17 +115,22 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Clock, Location, Search } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { getPublicDemandsApi } from '@/api/public';
 import { CATEGORY_PRESETS, COUNTRY_PRESETS } from '@/dicts';
 import { openAuthModal } from '@/composables/useAuthModal';
+import { useUserStore } from '@/store/modules/user';
+import { submitDemandApplyApi } from '@/api/demandApply';
 
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
 const loading = ref(false);
 const demandList = ref([]);
+const applyLoadingMap = reactive({});
 
 const queryParams = reactive({
   keyword: String(route.query.keyword || ''),
@@ -117,6 +141,12 @@ const queryParams = reactive({
 const categories = CATEGORY_PRESETS.map((label) => ({ label, value: label }));
 const countries = COUNTRY_PRESETS.map((label) => ({ label, value: label }));
 const quickCategories = CATEGORY_PRESETS.slice(0, 8);
+const isLogin = computed(() => userStore.isLogin);
+const canApplyDemand = computed(() => {
+  const role = String(userStore.userInfo?.role || '').toUpperCase();
+  const applyStatus = String(userStore.userInfo?.workerApplyStatus || '').toUpperCase();
+  return role === 'WORKER' || applyStatus === 'APPROVED';
+});
 
 async function fetchDemands() {
   loading.value = true;
@@ -160,7 +190,51 @@ function clearFilters() {
 }
 
 function handleCardClick() {
-  openAuthModal('login');
+  if (!isLogin.value) {
+    openAuthModal('login', { redirect: route.fullPath });
+  }
+}
+
+async function handleApply(item) {
+  if (!isLogin.value) {
+    openAuthModal('login', { redirect: route.fullPath });
+    return;
+  }
+  if (!canApplyDemand.value) {
+    ElMessage.warning('请先在个人中心完成执行者审核');
+    return;
+  }
+  const demandId = Number(item?.id || 0);
+  if (!demandId || applyLoadingMap[demandId]) return;
+
+  try {
+    const defaultQuote = Number(item?.budget || 0);
+    const { value } = await ElMessageBox.prompt('请输入你的报价（最多两位小数）', '申请该需求', {
+      confirmButtonText: '提交申请',
+      cancelButtonText: '取消',
+      inputPlaceholder: '例如：1200',
+      inputValue: defaultQuote > 0 ? String(defaultQuote) : '',
+      inputPattern: /^(?:[1-9]\d*|0)(?:\.\d{1,2})?$/,
+      inputErrorMessage: '请输入合法金额',
+    });
+    const quoteAmount = Number(String(value || '').trim());
+    if (!Number.isFinite(quoteAmount) || quoteAmount <= 0) {
+      ElMessage.warning('报价必须大于 0');
+      return;
+    }
+    applyLoadingMap[demandId] = true;
+    await submitDemandApplyApi(demandId, {
+      quoteAmount,
+      applyNote: '',
+    });
+    ElMessage.success('申请已提交，请等待需求方处理');
+  } catch (error) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error?.message || '申请提交失败');
+    }
+  } finally {
+    applyLoadingMap[demandId] = false;
+  }
 }
 
 function formatTitle(desc) {
@@ -462,13 +536,43 @@ onMounted(() => {
 }
 
 .login-hint {
-  margin-top: 10px;
-  display: inline-flex;
-  padding: 6px 10px;
-  border-radius: 10px;
   font-size: 12px;
   color: #245290;
-  background: rgba(215, 232, 255, 0.5);
+}
+
+.card-actions {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.apply-btn {
+  border: 1px solid #98c0f7;
+  background: #e7f1ff;
+  color: #1e4f91;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.apply-btn:hover {
+  background: #d7e9ff;
+}
+
+.apply-btn.secondary {
+  border-color: #c2d8fb;
+  color: #395f98;
+  background: #f2f7ff;
+}
+
+.apply-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .reveal-up {

@@ -93,6 +93,16 @@ const routes = [
         },
       },
       {
+        path: '/demand-applications',
+        name: 'DemandApplications',
+        component: () => import('@/views/DemandApplications.vue'),
+        meta: {
+          title: '需求申请管理',
+          requiresAuth: true,
+          disallowRoles: [USER_ROLE.ADMIN],
+        },
+      },
+      {
         path: '/orders',
         name: 'OrderList',
         component: () => import('@/views/OrderList.vue'),

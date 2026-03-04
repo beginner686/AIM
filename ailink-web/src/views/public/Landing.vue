@@ -7,43 +7,42 @@
 
       <div class="hero-inner">
         <article class="hero-copy reveal-up">
-          <p class="eyebrow">GLOBAL TASK MARKETPLACE</p>
+          <p class="eyebrow">{{ $t('landing.hero.eyebrow') }}</p>
           <h1>
-            连接全球执行者
-            <span class="gradient-text">让跨境履约稳定发生</span>
+            {{ $t('landing.hero.title') }}
+            <span class="gradient-text">{{ $t('landing.hero.subtitle') }}</span>
           </h1>
           <p class="lead">
-            AI-Link 为出海团队提供可托管、可验收、可追踪的跨境任务撮合与履约协作。
-            从发布需求到验收结算，全链路透明可控。
+            {{ $t('landing.hero.desc') }}
           </p>
 
           <div class="hero-actions">
-            <button type="button" class="btn btn-primary" @click="openRegister">免费开始</button>
-            <RouterLink to="/explore/demands" class="btn btn-ghost">浏览需求大厅</RouterLink>
+            <button type="button" class="btn btn-primary" @click="openRegister">{{ $t('landing.hero.startBtn') }}</button>
+            <RouterLink to="/explore/demands" class="btn btn-ghost">{{ $t('landing.hero.exploreBtn') }}</RouterLink>
           </div>
 
           <div class="hero-meta">
-            <span>托管机制保障交易安全</span>
-            <span>执行者接单后才解锁联系方式</span>
+            <span>{{ $t('landing.hero.metaP1') }}</span>
+            <span>{{ $t('landing.hero.metaP2') }}</span>
           </div>
         </article>
 
         <aside class="hero-panel reveal-up delay-1">
           <div class="panel-head">
-            <p>平台实时概览</p>
-            <span>Live</span>
+            <p>{{ $t('landing.kpi.title') }}</p>
+            <span>{{ $t('landing.kpi.live') }}</span>
           </div>
           <div class="kpi-grid">
             <div class="kpi-card">
-              <p>开放需求</p>
+              <p>{{ $t('landing.kpi.demands') }}</p>
               <strong>{{ formatNumber(stats?.demandCount, '1,200+') }}</strong>
             </div>
             <div class="kpi-card">
-              <p>认证执行者</p>
+              <p>{{ $t('landing.kpi.workers') }}</p>
               <strong>{{ formatNumber(stats?.workerCount, '500+') }}</strong>
             </div>
             <div class="kpi-card">
-              <p>覆盖国家</p>
+              <p>{{ $t('landing.kpi.countries') }}</p>
               <strong>{{ formatNumber(stats?.countryCount, '30+') }}</strong>
             </div>
           </div>
@@ -62,7 +61,7 @@
     </section>
 
     <section class="trust-strip reveal-up">
-      <p>被跨境电商、SaaS 团队、独立品牌和服务机构采用</p>
+      <p>{{ $t('landing.trust.text') }}</p>
       <div class="trust-logos">
         <span>DTC Studio</span>
         <span>NovaGrowth</span>
@@ -73,8 +72,8 @@
 
     <section class="value-section">
       <header class="section-head reveal-up">
-        <p>平台能力</p>
-        <h2>商业级履约协作体验</h2>
+        <p>{{ $t('landing.value.eyebrow') }}</p>
+        <h2>{{ $t('landing.value.title') }}</h2>
       </header>
       <div class="value-grid">
         <article v-for="(item, idx) in valueCards" :key="item.title" class="value-card reveal-up" :style="{ animationDelay: `${idx * 0.08}s` }">
@@ -87,8 +86,8 @@
 
     <section class="category-section">
       <header class="section-head reveal-up">
-        <p>热门赛道</p>
-        <h2>高频跨境服务场景</h2>
+        <p>{{ $t('landing.category.eyebrow') }}</p>
+        <h2>{{ $t('landing.category.title') }}</h2>
       </header>
       <div class="category-grid">
         <RouterLink
@@ -107,14 +106,14 @@
         </RouterLink>
       </div>
       <div class="category-action reveal-up delay-1">
-        <RouterLink to="/explore/categories" class="inline-link">查看完整服务目录</RouterLink>
+        <RouterLink to="/explore/categories" class="inline-link">{{ $t('landing.category.viewAll') }}</RouterLink>
       </div>
     </section>
 
     <section class="process-section">
       <header class="section-head reveal-up">
-        <p>交易流程</p>
-        <h2>从发布到履约，路径清晰</h2>
+        <p>{{ $t('landing.process.eyebrow') }}</p>
+        <h2>{{ $t('landing.process.title') }}</h2>
       </header>
       <div class="timeline">
         <article v-for="(step, idx) in processSteps" :key="step.title" class="timeline-card reveal-up" :style="{ animationDelay: `${idx * 0.1}s` }">
@@ -128,11 +127,11 @@
     <section class="cta-section reveal-up">
       <div class="cta-bg" />
       <div class="cta-inner">
-        <h2>现在开始你的跨境任务协作</h2>
-        <p>发布需求、发现执行者、推进订单状态，构建可持续的全球化执行能力。</p>
+        <h2>{{ $t('landing.cta.title') }}</h2>
+        <p>{{ $t('landing.cta.desc') }}</p>
         <div class="cta-actions">
-          <button type="button" class="btn btn-primary" @click="openRegister">我是雇主，发布任务</button>
-          <button type="button" class="btn btn-ghost" @click="openRegister">我是执行者，申请入驻</button>
+          <button type="button" class="btn btn-primary" @click="openRegister">{{ $t('landing.cta.employerBtn') }}</button>
+          <button type="button" class="btn btn-ghost" @click="openRegister">{{ $t('landing.cta.workerBtn') }}</button>
         </div>
       </div>
     </section>
@@ -140,7 +139,8 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getPublicStatsApi } from '@/api/public';
 import { openAuthModal } from '@/composables/useAuthModal';
 
@@ -155,36 +155,39 @@ import iconSupport from '@/assets/icons/icon-support.png';
 import iconSocial from '@/assets/icons/icon-social.png';
 import iconAssistant from '@/assets/icons/icon-assistant.png';
 
+const { t } = useI18n();
+
 const stats = ref(null);
 
-const liveSignals = [
-  { title: '托管状态可追踪', desc: '订单关键节点自动记录' },
-  { title: '接单前隐私保护', desc: '未接单前不暴露联系方式' },
-  { title: '跨国协作可视化', desc: '进度与争议处理有据可查' },
-];
+const liveSignals = computed(() => [
+  { title: t('landing.kpi.signals.0.title'), desc: t('landing.kpi.signals.0.desc') },
+  { title: t('landing.kpi.signals.1.title'), desc: t('landing.kpi.signals.1.desc') },
+  { title: t('landing.kpi.signals.2.title'), desc: t('landing.kpi.signals.2.desc') },
+]);
 
-const valueCards = [
-  { icon: iconEscrow, title: '托管与验收', desc: '需求方付款后进入平台托管，按状态推进与验收，降低交易不确定性。' },
-  { icon: iconMatching, title: '智能匹配', desc: '按国家、技能、价格区间快速筛选候选执行者，提高撮合效率。' },
-  { icon: iconCollaboration, title: '跨境协作', desc: '面向多时区团队设计，统一订单状态、消息与留痕，减少沟通损耗。' },
-  { icon: iconScalable, title: '商业可扩展', desc: '支持从单次任务到长期合作，逐步沉淀稳定履约网络。' },
-];
+const valueCards = computed(() => [
+  { icon: iconEscrow, title: t('landing.value.cards.0.title'), desc: t('landing.value.cards.0.desc') },
+  { icon: iconMatching, title: t('landing.value.cards.1.title'), desc: t('landing.value.cards.1.desc') },
+  { icon: iconCollaboration, title: t('landing.value.cards.2.title'), desc: t('landing.value.cards.2.desc') },
+  { icon: iconScalable, title: t('landing.value.cards.3.title'), desc: t('landing.value.cards.3.desc') },
+]);
 
-const topCategories = [
-  { name: '翻译本地化', icon: iconTranslation, tag: 'High Demand', desc: '文案、页面、客服脚本等内容的本地语言适配。' },
-  { name: '海外投放', icon: iconAds, tag: 'Performance', desc: '多渠道投放优化与本地素材测试。' },
-  { name: '视频剪辑', icon: iconVideo, tag: 'Creative', desc: '短视频与广告素材迭代，适配不同市场偏好。' },
-  { name: '客服支持', icon: iconSupport, tag: 'Operation', desc: '跨语言售前售后响应，提升客户体验。' },
-  { name: '社媒运营', icon: iconSocial, tag: 'Brand', desc: '账号内容发布与日常互动运营。' },
-  { name: '远程助理', icon: iconAssistant, tag: 'Execution', desc: '流程执行、资料整理与协同支持。' },
-];
+const topCategories = computed(() => [
+  // 注意，分类的 name 可能会用作 URL 的跳转参数（如 `?category=XX`），建议后续对这种关联数据库原始值的字段独立处理
+  { name: t('landing.category.cards.0.name'), icon: iconTranslation, tag: t('landing.category.cards.0.tag'), desc: t('landing.category.cards.0.desc') },
+  { name: t('landing.category.cards.1.name'), icon: iconAds, tag: t('landing.category.cards.1.tag'), desc: t('landing.category.cards.1.desc') },
+  { name: t('landing.category.cards.2.name'), icon: iconVideo, tag: t('landing.category.cards.2.tag'), desc: t('landing.category.cards.2.desc') },
+  { name: t('landing.category.cards.3.name'), icon: iconSupport, tag: t('landing.category.cards.3.tag'), desc: t('landing.category.cards.3.desc') },
+  { name: t('landing.category.cards.4.name'), icon: iconSocial, tag: t('landing.category.cards.4.tag'), desc: t('landing.category.cards.4.desc') },
+  { name: t('landing.category.cards.5.name'), icon: iconAssistant, tag: t('landing.category.cards.5.tag'), desc: t('landing.category.cards.5.desc') },
+]);
 
-const processSteps = [
-  { title: '发布需求', desc: '明确国家、类目、预算与交付标准，进入公开需求池。' },
-  { title: '选择执行者', desc: '基于能力画像进行筛选，创建订单并锁定协作关系。' },
-  { title: '支付与接单', desc: '服务费支付后进入待接单，执行者确认后解锁联系与履约。' },
-  { title: '验收结算', desc: '任务完成后验收与评价，形成长期可信合作关系。' },
-];
+const processSteps = computed(() => [
+  { title: t('landing.process.steps.0.title'), desc: t('landing.process.steps.0.desc') },
+  { title: t('landing.process.steps.1.title'), desc: t('landing.process.steps.1.desc') },
+  { title: t('landing.process.steps.2.title'), desc: t('landing.process.steps.2.desc') },
+  { title: t('landing.process.steps.3.title'), desc: t('landing.process.steps.3.desc') },
+]);
 
 function openRegister() {
   openAuthModal('register');

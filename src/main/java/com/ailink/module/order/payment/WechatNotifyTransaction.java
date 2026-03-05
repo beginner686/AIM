@@ -5,9 +5,11 @@ import lombok.Data;
 @Data
 public class WechatNotifyTransaction {
 
+    private String eventId;
     private String outTradeNo;
     private String transactionId;
     private Integer totalFeeFen;
     private String tradeState;
     private String successTime;
+    private String rawContent;
 }

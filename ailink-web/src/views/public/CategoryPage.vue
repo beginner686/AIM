@@ -34,7 +34,7 @@
           :style="{ animationDelay: `${idx * 0.035}s` }"
         >
           <div class="top">
-            <span class="icon">{{ getIcon(item.value) }}</span>
+            <span class="icon"><img :src="getIcon(item.value)" :alt="item.label" /></span>
             <span class="arrow">→</span>
           </div>
           <h3>{{ item.label }}</h3>
@@ -57,6 +57,24 @@ import { computed, ref } from 'vue';
 import { Search } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { CATEGORY_PRESETS } from '@/dicts';
+
+import iconTranslation from '@/assets/categories/cat-translation.png';
+import iconAssistant from '@/assets/categories/cat-assistant.png';
+import iconVideo from '@/assets/categories/cat-video.png';
+import iconAds from '@/assets/categories/cat-ads.png';
+import iconSupport from '@/assets/categories/cat-support.png';
+import iconGraphic from '@/assets/categories/cat-graphic.png';
+import iconUiux from '@/assets/categories/cat-uiux.png';
+import iconCopywriting from '@/assets/categories/cat-copywriting.png';
+import iconSocial from '@/assets/categories/cat-social.png';
+import iconSeo from '@/assets/categories/cat-seo.png';
+import iconKol from '@/assets/categories/cat-kol.png';
+import iconWeb from '@/assets/categories/cat-web.png';
+import iconEcommerce from '@/assets/categories/cat-ecommerce.png';
+import iconLogistics from '@/assets/categories/cat-logistics.png';
+import iconFinance from '@/assets/categories/cat-finance.png';
+import iconCompany from '@/assets/categories/cat-company.png';
+import iconLegal from '@/assets/categories/cat-legal.png';
 
 const { t } = useI18n();
 const keyword = ref('');
@@ -85,21 +103,28 @@ const CATEGORY_I18N_KEY_MAP = {
 const categories = CATEGORY_PRESETS.map((value) => ({ label: localizeCategoryLabel(value), value }));
 
 const iconMap = {
-  翻译本地化: '🌐',
-  远程助理: '🧩',
-  视频剪辑: '🎬',
-  海外投放: '📈',
-  客服支持: '🎧',
-  平面设计: '🎨',
-  社媒运营: '📱',
-  SEO优化: '🔎',
-  网站开发: '💻',
-  电商代运营: '🛒',
-  跨境物流: '🚚',
-  法律咨询: '⚖',
+  翻译本地化: iconTranslation,
+  远程助理: iconAssistant,
+  视频剪辑: iconVideo,
+  海外投放: iconAds,
+  客服支持: iconSupport,
+  平面设计: iconGraphic,
+  'UI/UX设计': iconUiux,
+  文案策划: iconCopywriting,
+  社媒运营: iconSocial,
+  SEO优化: iconSeo,
+  '网红/KOL合作': iconKol,
+  网站开发: iconWeb,
+  电商代运营: iconEcommerce,
+  跨境物流: iconLogistics,
+  财税服务: iconFinance,
+  海外公司注册: iconCompany,
+  法律咨询: iconLegal,
+  UI设计: iconUiux,
+  翻译: iconTranslation,
 };
 
-const defaultIcons = ['💡', '📊', '🛰', '🧠', '🧭', '🛠'];
+const defaultIcons = [iconTranslation, iconAssistant, iconVideo, iconAds, iconSupport, iconGraphic];
 
 const filteredCategories = computed(() => {
   const key = String(keyword.value || '').trim().toLowerCase();
@@ -272,6 +297,13 @@ function hashCode(value) {
   font-size: 22px;
   border: 1px solid #cae3ff;
   background: linear-gradient(135deg, #e6f2ff, #e1fff3);
+}
+
+.icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 11px;
 }
 
 .arrow {

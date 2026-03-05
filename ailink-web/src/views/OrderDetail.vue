@@ -4,8 +4,9 @@
       <template #header>
         <div style="display: flex; align-items: center; justify-content: space-between;">
           <span>{{ t('orderDetail.pageTitle') }}</span>
-          <el-tag type="success" effect="dark" round style="display: flex; align-items: center; gap: 4px;">
-            🛡️ {{ t('orderDetail.aiEscrowProtected') }}
+          <el-tag type="success" effect="dark" round style="display: flex; align-items: center; gap: 4px; padding: 0 12px; height: 32px;">
+            <img src="/security-shield.png" alt="Protected" style="width: 18px; height: 18px; object-fit: contain;" />
+            <span style="font-weight: 600;">{{ t('orderDetail.aiEscrowProtected') }}</span>
           </el-tag>
         </div>
       </template>
@@ -104,6 +105,7 @@
           :loading="actionLoading"
           @click="handleDispute"
         >
+          <img src="/security-shield.png" alt="icon" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;" />
           {{ t('orderDetail.raiseAiDispute') }}
         </el-button>
         <el-button
@@ -120,7 +122,10 @@
 
       <div v-else-if="order.status === ORDER_STATUS.IN_PROGRESS" class="action-row">
         <el-button v-if="isEmployer && canClientOperate" type="primary" :loading="actionLoading" @click="handleComplete">{{ t('orderDetail.completeOrder') }}</el-button>
-        <el-button v-if="(isEmployer && canClientOperate) || isWorker" type="danger" :loading="actionLoading" @click="handleDispute">{{ t('orderDetail.raiseAiDispute') }}</el-button>
+        <el-button v-if="(isEmployer && canClientOperate) || isWorker" type="danger" :loading="actionLoading" @click="handleDispute">
+          <img src="/security-shield.png" alt="icon" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;" />
+          {{ t('orderDetail.raiseAiDispute') }}
+        </el-button>
         <span class="action-tip">{{ inProgressTip }}</span>
       </div>
 

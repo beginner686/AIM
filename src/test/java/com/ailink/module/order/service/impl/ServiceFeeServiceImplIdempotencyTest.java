@@ -4,6 +4,8 @@ import com.ailink.common.exception.BizException;
 import com.ailink.common.enums.OrderStatus;
 import com.ailink.common.enums.PlatformPaymentStatus;
 import com.ailink.common.enums.ServiceFeeStatus;
+import com.ailink.module.demand.entity.Demand;
+import com.ailink.module.demand.mapper.DemandMapper;
 import com.ailink.module.order.dto.OrderCreateRequest;
 import com.ailink.module.order.entity.Order;
 import com.ailink.module.order.entity.OrderStatusLog;
@@ -27,6 +29,7 @@ import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -58,6 +61,9 @@ class ServiceFeeServiceImplIdempotencyTest {
 
     @Autowired
     private OrderMapper orderMapper;
+
+    @Autowired
+    private DemandMapper demandMapper;
 
     @Autowired
     private PlatformPaymentMapper platformPaymentMapper;
@@ -156,20 +162,20 @@ class ServiceFeeServiceImplIdempotencyTest {
                 .last("limit 1"));
         assertNotNull(payment);
 
-        when(wechatNativePayService.verifyAndParseNotify(anyString(), anyString(), anyString(), anyString()))
+        when(wechatNativePayService.verifyAndParseNotify(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenAnswer(invocation -> buildSuccessNotify(payment.getPaymentNo(), "TX-IDEMP-001", 10000));
 
         for (int i = 0; i < 5; i++) {
-            String reply = serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "{}");
+            String reply = serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "serial", "{}");
             assertTrue(reply.contains("SUCCESS"));
         }
 
         ExecutorService executor = Executors.newFixedThreadPool(3);
         try {
             List<Callable<String>> tasks = List.of(
-                    () -> serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "{}"),
-                    () -> serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "{}"),
-                    () -> serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "{}")
+                    () -> serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "serial", "{}"),
+                    () -> serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "serial", "{}"),
+                    () -> serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "serial", "{}")
             );
             List<Future<String>> futures = executor.invokeAll(tasks);
             List<Throwable> errors = new ArrayList<>();
@@ -265,10 +271,10 @@ class ServiceFeeServiceImplIdempotencyTest {
         assertNotNull(payment);
         assertEquals(PlatformPaymentStatus.UNPAID.name(), payment.getStatus());
 
-        when(wechatNativePayService.verifyAndParseNotify(anyString(), anyString(), anyString(), anyString()))
+        when(wechatNativePayService.verifyAndParseNotify(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenAnswer(invocation -> buildSuccessNotify(payVO.getPaymentNo(), "TX-UPDFAIL-001", 10000));
 
-        String reply = serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "{}");
+        String reply = serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "serial", "{}");
         assertTrue(reply.contains("SUCCESS"));
 
         Order order = orderMapper.selectById(orderId);
@@ -282,9 +288,9 @@ class ServiceFeeServiceImplIdempotencyTest {
         Long orderId = createServiceFeeRequiredOrder();
         ServiceFeePayVO payVO = serviceFeeService.payServiceFee(1L, "EMPLOYER", orderId, "WECHAT_PAY", null);
 
-        when(wechatNativePayService.verifyAndParseNotify(anyString(), anyString(), anyString(), anyString()))
+        when(wechatNativePayService.verifyAndParseNotify(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenAnswer(invocation -> buildSuccessNotify(payVO.getPaymentNo(), "TX-SUCCESS-001", 10000));
-        serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "{}");
+        serviceFeeService.handleWechatNotify("sign", "1710000000", "nonce", "serial", "{}");
 
         BizException exception = assertThrows(BizException.class,
                 () -> serviceFeeService.payServiceFee(1L, "EMPLOYER", orderId, "WECHAT_PAY", null));
@@ -301,12 +307,26 @@ class ServiceFeeServiceImplIdempotencyTest {
     }
 
     private Long createServiceFeeRequiredOrder() {
+        Long demandId = createDemandForTest();
         OrderCreateRequest request = new OrderCreateRequest();
-        request.setDemandId(10L);
+        request.setDemandId(demandId);
         request.setWorkerProfileId(20L);
         request.setAmount(new BigDecimal("1000.00"));
         request.setPaymentChannel("WECHAT_PAY");
         return orderService.createOrder(1L, request);
+    }
+
+    private Long createDemandForTest() {
+        Demand demand = new Demand();
+        demand.setUserId(1L);
+        demand.setTargetCountry("SG");
+        demand.setCategory("translation");
+        demand.setBudget(new BigDecimal("1000.00"));
+        demand.setDescription("test demand " + System.nanoTime());
+        demand.setDeadline(LocalDateTime.now().plusDays(7));
+        demand.setStatus("OPEN");
+        demandMapper.insert(demand);
+        return demand.getId();
     }
 
     private WechatNotifyTransaction buildSuccessNotify(String paymentNo, String txId, Integer totalFen) {

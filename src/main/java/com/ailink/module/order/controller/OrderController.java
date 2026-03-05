@@ -8,11 +8,13 @@ import com.ailink.module.order.dto.OrderBatchDeleteRequest;
 import com.ailink.module.order.dto.OrderCreateRequest;
 import com.ailink.module.order.dto.ServiceFeePayRequest;
 import com.ailink.module.order.service.OrderService;
+import com.ailink.module.order.service.PlatformConfigService;
 import com.ailink.module.order.service.ServiceFeeService;
 import com.ailink.module.order.vo.OrderBatchDeleteResultVO;
 import com.ailink.module.order.vo.OrderDetailVO;
 import com.ailink.module.order.vo.OrderStatusLogVO;
 import com.ailink.module.order.vo.OrderVO;
+import com.ailink.module.order.vo.FeeConfigVO;
 import com.ailink.module.order.vo.ServiceFeePayVO;
 import com.ailink.security.SecurityContextUtil;
 import jakarta.validation.Valid;
@@ -32,10 +34,14 @@ public class OrderController {
 
     private final OrderService orderService;
     private final ServiceFeeService serviceFeeService;
+    private final PlatformConfigService platformConfigService;
 
-    public OrderController(OrderService orderService, ServiceFeeService serviceFeeService) {
+    public OrderController(OrderService orderService,
+                           ServiceFeeService serviceFeeService,
+                           PlatformConfigService platformConfigService) {
         this.orderService = orderService;
         this.serviceFeeService = serviceFeeService;
+        this.platformConfigService = platformConfigService;
     }
 
     @PostMapping
@@ -102,6 +108,11 @@ public class OrderController {
     @GetMapping("/my")
     public Result<List<OrderVO>> myOrders() {
         return Result.success(orderService.listMyOrders(SecurityContextUtil.currentUserId()));
+    }
+
+    @GetMapping("/config/fees")
+    public Result<FeeConfigVO> feeConfig() {
+        return Result.success(platformConfigService.getFeeConfig());
     }
 
     @PostMapping("/my/delete")

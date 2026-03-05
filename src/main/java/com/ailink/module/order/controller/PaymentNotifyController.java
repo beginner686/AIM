@@ -32,7 +32,7 @@ public class PaymentNotifyController {
         String serial = request.getHeader("Wechatpay-Serial");
         log.info("wechat notify received, serial={}, timestamp={}, nonce={}", serial, timestamp, nonce);
         try {
-            String responseBody = serviceFeeService.handleWechatNotify(signature, timestamp, nonce, body);
+            String responseBody = serviceFeeService.handleWechatNotify(signature, timestamp, nonce, serial, body);
             return ResponseEntity.ok(responseBody);
         } catch (Exception e) {
             log.error("wechat notify handle failed", e);

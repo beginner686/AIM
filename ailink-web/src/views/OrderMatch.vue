@@ -114,6 +114,22 @@
           </el-button>
           <el-tag v-if="isEmployer && employerDeclaredPaid" type="success">{{ t('orderMatch.declaredPaidTag') }}</el-tag>
           <el-button
+            v-if="canAcceptWork"
+            type="success"
+            :loading="actionLoading"
+            @click="handleAcceptWork"
+          >
+            {{ t('orderDetail.acceptOrder') }}
+          </el-button>
+          <el-button
+            v-if="canRejectWork"
+            type="danger"
+            :loading="actionLoading"
+            @click="handleRejectWork"
+          >
+            {{ t('orderDetail.rejectOrder') }}
+          </el-button>
+          <el-button
             v-if="canStartWork"
             type="success"
             :loading="actionLoading"
@@ -134,7 +150,13 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useI18n } from 'vue-i18n';
-import { declarePaidApi, getOrderDetailApi, startWorkApi } from '@/api/order';
+import {
+  acceptOrderApi,
+  declarePaidApi,
+  getOrderDetailApi,
+  rejectOrderApi,
+  startWorkApi,
+} from '@/api/order';
 import { getOrderStatusLabel, getOrderStatusTag, ORDER_STATUS } from '@/dicts';
 import { useUserStore } from '@/store/modules/user';
 
@@ -188,6 +210,10 @@ const canDeclarePaid = computed(() =>
   isEmployer.value && canClientOperate.value && order.value.status === ORDER_STATUS.MATCH_UNLOCKED && !employerDeclaredPaid.value);
 const canStartWork = computed(() =>
   isWorker.value && order.value.status === ORDER_STATUS.MATCH_UNLOCKED && employerDeclaredPaid.value);
+const canAcceptWork = computed(() =>
+  isWorker.value
+  && (order.value.status === ORDER_STATUS.SERVICE_FEE_PAID || order.value.status === ORDER_STATUS.WAIT_WORKER_ACCEPT));
+const canRejectWork = computed(() => canAcceptWork.value);
 
 const stepIndex = computed(() => {
   if (order.value.status === ORDER_STATUS.IN_PROGRESS || order.value.status === ORDER_STATUS.COMPLETED) return 2;
@@ -331,6 +357,48 @@ async function handleStartWork() {
     actionLoading.value = true;
     await startWorkApi(order.value.id);
     ElMessage.success(t('orderMatch.startDone'));
+    await loadDetail();
+  } catch (error) {
+    if (!isCancelError(error)) {}
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleAcceptWork() {
+  if (!canAcceptWork.value || actionLoading.value) return;
+  try {
+    await ElMessageBox.confirm(t('orderDetail.acceptConfirmMessage'), t('orderDetail.acceptConfirmTitle'), {
+      type: 'warning',
+      confirmButtonText: t('orderMatch.confirm'),
+      cancelButtonText: t('orderMatch.cancel'),
+    });
+    actionLoading.value = true;
+    await acceptOrderApi(order.value.id);
+    ElMessage.success(t('orderDetail.acceptSuccess'));
+    await loadDetail();
+  } catch (error) {
+    if (!isCancelError(error)) {}
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+async function handleRejectWork() {
+  if (!canRejectWork.value || actionLoading.value) return;
+  try {
+    const { value: reason } = await ElMessageBox.prompt(
+      t('orderDetail.rejectPromptMessage'),
+      t('orderDetail.rejectPromptTitle'),
+      {
+        confirmButtonText: t('orderDetail.confirmReject'),
+        cancelButtonText: t('orderMatch.cancel'),
+        inputPlaceholder: t('orderDetail.rejectPlaceholder'),
+      },
+    );
+    actionLoading.value = true;
+    await rejectOrderApi(order.value.id, String(reason || '').trim());
+    ElMessage.success(t('orderDetail.rejectSuccess'));
     await loadDetail();
   } catch (error) {
     if (!isCancelError(error)) {}

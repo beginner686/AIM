@@ -90,14 +90,59 @@
         </div>
         <el-empty v-if="!workerApplyLoading && workerApplyList.length === 0" description="暂无入驻申请" />
         <el-table v-else v-loading="workerApplyLoading" :data="workerApplyList" stripe>
+          <el-table-column type="expand" width="56">
+            <template #default="{ row }">
+              <div class="apply-expand">
+                <p><strong>经验说明：</strong>{{ row.experience || '—' }}</p>
+                <p><strong>补充说明：</strong>{{ row.applyNote || '—' }}</p>
+                <p>
+                  <strong>补充材料：</strong>
+                  <span v-if="!row.applyAttachmentName && !row.applyAttachmentUrl">—</span>
+                  <template v-else>
+                    <span>{{ row.applyAttachmentName || '未命名文件' }}</span>
+                    <el-link
+                      v-if="getAttachmentUrl(row)"
+                      type="primary"
+                      style="margin-left: 8px;"
+                      :underline="false"
+                      @click="copyText(getAttachmentUrl(row), '材料路径已复制')"
+                    >
+                      复制路径
+                    </el-link>
+                  </template>
+                </p>
+                <p><strong>审核人ID：</strong>{{ row.reviewedBy || '—' }}</p>
+                <p><strong>审核时间：</strong>{{ formatDateTime(row.reviewedTime) }}</p>
+              </div>
+            </template>
+          </el-table-column>
           <el-table-column prop="id" label="申请ID" min-width="90" />
           <el-table-column prop="userId" label="用户ID" min-width="90" />
           <el-table-column label="地区" min-width="120">
             <template #default="{ row }">{{ row.country || '—' }} / {{ row.city || '—' }}</template>
           </el-table-column>
           <el-table-column prop="skillTags" label="技能" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="experience" label="经验说明" min-width="180" show-overflow-tooltip />
           <el-table-column label="报价" min-width="130">
             <template #default="{ row }">¥{{ fmt(row.priceMin) }} ~ ¥{{ fmt(row.priceMax) }}</template>
+          </el-table-column>
+          <el-table-column prop="applyNote" label="补充说明" min-width="180" show-overflow-tooltip />
+          <el-table-column label="补充材料" min-width="180" show-overflow-tooltip>
+            <template #default="{ row }">
+              <template v-if="row.applyAttachmentName || row.applyAttachmentUrl">
+                <span>{{ row.applyAttachmentName || '未命名文件' }}</span>
+                <el-link
+                  v-if="getAttachmentUrl(row)"
+                  type="primary"
+                  style="margin-left: 8px;"
+                  :underline="false"
+                  @click="copyText(getAttachmentUrl(row), '材料路径已复制')"
+                >
+                  复制路径
+                </el-link>
+              </template>
+              <span v-else>—</span>
+            </template>
           </el-table-column>
           <el-table-column label="状态" min-width="100">
             <template #default="{ row }">
@@ -237,6 +282,21 @@ function workerApplyTagType(status) {
   if (key === 'APPROVED') return 'success';
   if (key === 'REJECTED') return 'danger';
   return 'info';
+}
+
+function getAttachmentUrl(row) {
+  return String(row?.applyAttachmentUrl || '').trim();
+}
+
+async function copyText(text, successMessage) {
+  const value = String(text || '').trim();
+  if (!value) return;
+  try {
+    await navigator.clipboard.writeText(value);
+    ElMessage.success(successMessage || '已复制');
+  } catch {
+    ElMessage.error('复制失败');
+  }
 }
 
 async function loadWorkerApplyList() {
@@ -435,6 +495,17 @@ watch(
   gap: 12px;
   margin-bottom: 12px;
   flex-wrap: wrap;
+}
+
+.apply-expand {
+  padding: 10px 8px 6px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.apply-expand p {
+  margin: 0 0 6px;
 }
 
 /* 排行徽章 */

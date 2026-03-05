@@ -35,15 +35,15 @@
           <div class="kpi-grid">
             <div class="kpi-card">
               <p>{{ $t('landing.kpi.demands') }}</p>
-              <strong>{{ formatNumber(stats?.demandCount, '1,200+') }}</strong>
+              <strong>{{ formatNumber(stats?.demandCount) }}</strong>
             </div>
             <div class="kpi-card">
               <p>{{ $t('landing.kpi.workers') }}</p>
-              <strong>{{ formatNumber(stats?.workerCount, '500+') }}</strong>
+              <strong>{{ formatNumber(stats?.workerCount) }}</strong>
             </div>
             <div class="kpi-card">
               <p>{{ $t('landing.kpi.countries') }}</p>
-              <strong>{{ formatNumber(stats?.countryCount, '30+') }}</strong>
+              <strong>{{ formatNumber(stats?.countryCount) }}</strong>
             </div>
           </div>
 
@@ -80,6 +80,32 @@
           <div class="icon"><img :src="item.icon" :alt="item.title" /></div>
           <h3>{{ item.title }}</h3>
           <p>{{ item.desc }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="ai-section">
+      <header class="section-head reveal-up text-center">
+        <p>{{ $t('landing.ai.eyebrow') }}</p>
+        <h2>{{ $t('landing.ai.title') }}</h2>
+        <p class="section-desc">{{ $t('landing.ai.intro') }}</p>
+      </header>
+      <div class="ai-grid">
+        <article class="ai-card reveal-up delay-1">
+          <div class="glow-bg glow-blue"></div>
+          <div class="card-inner">
+            <div class="ai-icon"><img src="/ai-butler.png" alt="AI Hosting" /></div>
+            <h3>{{ $t('landing.ai.hosting.title') }}</h3>
+            <p>{{ $t('landing.ai.hosting.desc') }}</p>
+          </div>
+        </article>
+        <article class="ai-card reveal-up delay-2">
+          <div class="glow-bg glow-cyan"></div>
+          <div class="card-inner">
+            <div class="ai-icon"><img src="/security-shield.png" alt="AI Arbitration" /></div>
+            <h3>{{ $t('landing.ai.arbitration.title') }}</h3>
+            <p>{{ $t('landing.ai.arbitration.desc') }}</p>
+          </div>
         </article>
       </div>
     </section>
@@ -139,7 +165,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getPublicStatsApi } from '@/api/public';
 import { openAuthModal } from '@/composables/useAuthModal';
@@ -148,16 +174,18 @@ import iconEscrow from '@/assets/icons/icon-escrow.png';
 import iconMatching from '@/assets/icons/icon-matching.png';
 import iconCollaboration from '@/assets/icons/icon-collaboration.png';
 import iconScalable from '@/assets/icons/icon-scalable.png';
-import iconTranslation from '@/assets/icons/icon-translation.png';
-import iconAds from '@/assets/icons/icon-ads.png';
-import iconVideo from '@/assets/icons/icon-video.png';
-import iconSupport from '@/assets/icons/icon-support.png';
-import iconSocial from '@/assets/icons/icon-social.png';
-import iconAssistant from '@/assets/icons/icon-assistant.png';
+import iconTranslation from '@/assets/categories/cat-translation.png';
+import iconAds from '@/assets/categories/cat-ads.png';
+import iconVideo from '@/assets/categories/cat-video.png';
+import iconSupport from '@/assets/categories/cat-support.png';
+import iconSocial from '@/assets/categories/cat-social.png';
+import iconAssistant from '@/assets/categories/cat-assistant.png';
 
 const { t } = useI18n();
 
 const stats = ref(null);
+let statsTimer = null;
+const STATS_REFRESH_MS = 15000;
 
 const liveSignals = computed(() => [
   { title: t('landing.kpi.signals.0.title'), desc: t('landing.kpi.signals.0.desc') },
@@ -198,12 +226,26 @@ function formatNumber(value, fallback = '-') {
   return value.toLocaleString('zh-CN');
 }
 
-onMounted(async () => {
+async function loadStats() {
   try {
     const data = await getPublicStatsApi();
     stats.value = data || null;
   } catch {
     stats.value = null;
+  }
+}
+
+onMounted(async () => {
+  await loadStats();
+  statsTimer = window.setInterval(() => {
+    loadStats();
+  }, STATS_REFRESH_MS);
+});
+
+onUnmounted(() => {
+  if (statsTimer) {
+    window.clearInterval(statsTimer);
+    statsTimer = null;
   }
 });
 </script>
@@ -574,6 +616,113 @@ onMounted(async () => {
   font-size: 14px;
 }
 
+.ai-section {
+  max-width: 1180px;
+  width: calc(100% - 44px);
+  margin: 0 auto;
+}
+
+.section-desc {
+  margin: 12px auto 0;
+  max-width: 600px;
+  color: #4f678d;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.ai-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.ai-card {
+  position: relative;
+  border-radius: 20px;
+  padding: 1px;
+  background: linear-gradient(145deg, rgba(86, 140, 255, 0.4), rgba(65, 234, 203, 0.2));
+  box-shadow: 0 16px 32px rgba(20, 45, 95, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+
+.ai-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 48px rgba(20, 45, 95, 0.15);
+}
+
+.glow-bg {
+  position: absolute;
+  top: -50px;
+  left: -50px;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.6;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.ai-card:hover .glow-bg {
+  opacity: 0.9;
+}
+
+.glow-blue {
+  background: radial-gradient(circle, rgba(68, 125, 255, 0.5) 0%, transparent 70%);
+}
+
+.glow-cyan {
+  background: radial-gradient(circle, rgba(54, 201, 247, 0.5) 0%, transparent 70%);
+  top: -30px;
+  right: -50px;
+  left: auto;
+}
+
+.card-inner {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-radius: 19px;
+  padding: 32px;
+  height: 100%;
+}
+
+.ai-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #f0f7ff, #e3fbff);
+  border: 1px solid #cce5ff;
+  box-shadow: 0 8px 16px rgba(45, 100, 200, 0.08);
+}
+
+.ai-icon img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.card-inner h3 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  color: #0f2449;
+  letter-spacing: -0.01em;
+}
+
+.card-inner p {
+  margin: 0;
+  color: #4c6288;
+  line-height: 1.7;
+  font-size: 15px;
+}
+
 .category-grid {
   margin-top: 18px;
   display: grid;
@@ -779,6 +928,7 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 
+  .ai-grid,
   .value-grid,
   .timeline {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -796,6 +946,7 @@ onMounted(async () => {
     gap: 20px;
   }
 
+  .ai-grid,
   .value-grid,
   .category-grid,
   .timeline {

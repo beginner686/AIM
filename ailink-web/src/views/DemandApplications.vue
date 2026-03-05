@@ -15,10 +15,12 @@
 
     <el-card class="list-card reveal-up delay-1" shadow="never">
       <template #header>
-        <div class="section-head">
-          <h2>{{ t('demandApplications.ownerSectionTitle') }}</h2>
-          <el-button size="small" :loading="ownerLoading" @click="loadOwnerApplications">{{ t('demandApplications.refresh') }}</el-button>
-        </div>
+          <div class="section-head">
+            <h2>{{ t('demandApplications.ownerSectionTitle') }}</h2>
+            <div class="head-actions">
+              <el-button size="small" :loading="ownerLoading" @click="loadOwnerApplications">{{ t('demandApplications.refresh') }}</el-button>
+            </div>
+          </div>
       </template>
       <div class="toolbar">
         <el-select v-model="selectedDemandId" :placeholder="t('demandApplications.selectDemand')" clearable filterable class="toolbar-item" @change="loadOwnerApplications">
@@ -94,6 +96,7 @@
           <el-button size="small" :loading="myLoading" @click="loadMyApplications">{{ t('demandApplications.refresh') }}</el-button>
         </div>
       </template>
+
       <el-table v-loading="myLoading" :data="myApplications" stripe>
         <el-table-column prop="id" :label="t('demandApplications.colApplyId')" min-width="90" />
         <el-table-column :label="t('demandApplications.colDemand')" min-width="200">
@@ -138,6 +141,7 @@
           </template>
         </el-table-column>
       </el-table>
+
     </el-card>
   </div>
 </template>
@@ -492,5 +496,10 @@ onMounted(async () => {
 
 .delay-1 {
   animation-delay: 0.1s;
+}
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 </style>

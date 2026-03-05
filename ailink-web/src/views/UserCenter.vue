@@ -223,6 +223,99 @@
       </div>
     </el-card>
 
+    <!-- AI 托管推荐执行者弹窗 -->
+    <el-dialog
+      v-model="aiMatchDialogVisible"
+      width="760px"
+      class="ai-match-dialog"
+      destroy-on-close
+    >
+      <template #header>
+        <div class="ai-dialog-header">
+          <div class="ai-dialog-title-wrap">
+            <span class="ai-dialog-icon-wrap">
+              <img src="/ai-butler.png" alt="AI Butler" class="ai-dialog-icon-img" />
+            </span>
+            <div class="ai-dialog-title-content">
+              <p class="ai-dialog-kicker">AI ESCROW MATCH</p>
+              <h3>{{ aiDialogTitle }}</h3>
+            </div>
+          </div>
+          <el-tag effect="dark" type="success">LIVE</el-tag>
+        </div>
+      </template>
+
+      <div class="ai-dialog-body">
+        <div v-if="aiMatchLoading" class="ai-dialog-state is-loading">
+          <el-icon class="is-loading ai-loading-icon" :size="34"><Loading /></el-icon>
+          <p class="ai-dialog-state-text">{{ t('userCenter.aiMatchLoading') }}</p>
+        </div>
+        <div v-else-if="aiMatchResults.length === 0" class="ai-dialog-state is-empty">
+          <el-empty :description="t('userCenter.aiMatchEmpty')" />
+        </div>
+        <div v-else class="ai-match-list">
+          <p class="ai-match-subtitle">{{ t('userCenter.aiMatchSubtitle') }}</p>
+          <article
+            v-for="(r, index) in aiMatchResults"
+            :key="r.workerProfileId"
+            class="ai-match-card"
+            :class="aiRankClass(r.aiRank, index)"
+          >
+            <div class="ai-card-glow" />
+            <header class="ai-card-header">
+              <span class="ai-rank-badge">TOP {{ getAiRank(r.aiRank, index) }}</span>
+              <div class="ai-worker-info">
+                <h4>{{ r.workerName || (`执行者 #${r.workerProfileId}`) }}</h4>
+                <div class="ai-worker-sub">
+                  <el-tag size="small" type="success" effect="light">{{ r.country || '—' }}</el-tag>
+                  <span>ID {{ r.workerProfileId }}</span>
+                </div>
+              </div>
+            </header>
+
+            <p class="ai-reason">{{ r.aiRecommendReason || 'AI 未返回推荐理由' }}</p>
+
+            <div class="ai-meta-grid">
+              <div class="ai-metric">
+                <span>技能</span>
+                <strong>{{ normalizeAiText(r.skillTags) }}</strong>
+              </div>
+              <div class="ai-metric">
+                <span>评分</span>
+                <strong>{{ formatAiRating(r.rating) }}</strong>
+              </div>
+              <div class="ai-metric">
+                <span>报价</span>
+                <strong>{{ formatAiPriceRange(r) }}</strong>
+              </div>
+            </div>
+
+            <div v-if="r.matchedKeywords && r.matchedKeywords.length > 0" class="ai-keywords">
+              <el-tag
+                v-for="kw in r.matchedKeywords"
+                :key="kw"
+                size="small"
+                effect="plain"
+                class="ai-keyword-tag"
+              >
+                {{ kw }}
+              </el-tag>
+            </div>
+
+            <div class="ai-card-actions">
+              <el-button
+                type="primary"
+                class="ai-select-btn"
+                @click="goWorkerPoolWithWorker(aiMatchCurrentDemandId, r.workerProfileId)"
+              >
+                {{ t('userCenter.aiMatchSelectWorker') }}
+              </el-button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </el-dialog>
+
     <el-card v-if="isWorker" shadow="never" class="ucx-demand-panel reveal-up delay-1">
       <template #header>
         <div class="ucx-panel-header">
@@ -314,11 +407,27 @@
         <el-button type="primary" :loading="saving" @click="handleSave">{{ t('userCenter.save') }}</el-button>
       </template>
     </el-dialog>
+
+    <!-- 全局可移动 AI 管家 -->
+    <div
+      class="global-ai-assistant"
+      :style="butlerStyle"
+      @mousedown="startGlobalDrag"
+      @touchstart="startGlobalDrag"
+      @click="handleGlobalAiClick"
+    >
+      <el-tooltip :content="t('userCenter.aiEscrowMatch')" placement="left">
+        <div class="ai-butler-bubble-global">
+          <img src="/ai-butler.png" alt="AI" class="ai-butler-img-global" />
+          <div class="ai-match-pulse-global"></div>
+        </div>
+      </el-tooltip>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Edit } from '@element-plus/icons-vue';
@@ -329,6 +438,7 @@ import { getCurrentUserApi, updateUserProfileApi } from '@/api/user';
 import { cancelDemandApi, getMyDemandListApi } from '@/api/demand';
 import { getMyRunnerPaymentProfileApi, upsertMyRunnerPaymentProfileApi } from '@/api/runner';
 import { getMyWorkerApplyApi, submitWorkerApplyApi, uploadWorkerApplyAttachmentApi } from '@/api/workerApply';
+import { aiAutoMatchApi } from '@/api/order';
 import {
   DEMAND_ACTIVE_STATUSES,
   DEMAND_OPEN_STATUSES,
@@ -616,6 +726,159 @@ function goWorkerPool(demandId) {
   router.push({
     path: '/worker-pool',
     query: { demandId: String(demandId) },
+  });
+}
+
+// -------- 全局 AI 管家拖拽逻辑 --------
+const aiMatchDialogVisible = ref(false);
+const aiMatchLoading = ref(false);
+const aiMatchLoadingId = ref(null);
+const aiMatchResults = ref([]);
+const aiMatchCurrentDemandId = ref(null);
+const aiDialogTitle = computed(() => String(t('userCenter.aiMatchDialogTitle') || '').replace(/^🤖\s*/, '').trim());
+
+// 初始位置：右侧 40px，垂直居中
+const butlerStyle = reactive({
+  right: '40px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+});
+
+let dragStartX = 0;
+let dragStartY = 0;
+let initialRight = 0;
+let initialTop = 0;
+let isMoving = false;
+
+function startGlobalDrag(e) {
+  const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+  const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+  
+  dragStartX = clientX;
+  dragStartY = clientY;
+  isMoving = false;
+
+  // 获取当前实际数值
+  const rect = e.currentTarget.getBoundingClientRect();
+  initialRight = window.innerWidth - rect.right;
+  initialTop = rect.top;
+
+  // 清除初始居中的 transform 偏移
+  butlerStyle.transform = 'none';
+  butlerStyle.right = `${initialRight}px`;
+  butlerStyle.top = `${initialTop}px`;
+
+  window.addEventListener('mousemove', onGlobalDragging);
+  window.addEventListener('touchmove', onGlobalDragging, { passive: false });
+  window.addEventListener('mouseup', stopGlobalDrag);
+  window.addEventListener('touchend', stopGlobalDrag);
+}
+
+function onGlobalDragging(e) {
+  isMoving = true;
+  if (e.cancelable) e.preventDefault();
+
+  const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+  const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+  
+  const dx = clientX - dragStartX;
+  const dy = clientY - dragStartY;
+  
+  // 拖动更新位置（限制范围）
+  let newRight = initialRight - dx;
+  let newTop = initialTop + dy;
+
+  // 边界检查
+  newRight = Math.max(10, Math.min(window.innerWidth - 60, newRight));
+  newTop = Math.max(10, Math.min(window.innerHeight - 60, newTop));
+
+  butlerStyle.right = `${newRight}px`;
+  butlerStyle.top = `${newTop}px`;
+}
+
+function stopGlobalDrag() {
+  window.removeEventListener('mousemove', onGlobalDragging);
+  window.removeEventListener('touchmove', onGlobalDragging);
+  window.removeEventListener('mouseup', stopGlobalDrag);
+  window.removeEventListener('touchend', stopGlobalDrag);
+}
+
+function handleGlobalAiClick() {
+  if (isMoving) return;
+
+  // 尝试找到一个可以匹配的需求（优先选择第一个 OPEN 的）
+  const target = filteredDemands.value.find(d => String(d.status).toUpperCase() === 'OPEN') 
+                 || filteredDemands.value[0];
+                 
+  if (!target) {
+    ElMessage.info(t('userCenter.emptyDemands'));
+    return;
+  }
+  handleAiEscrowMatch(target);
+}
+
+async function handleAiEscrowMatch(item) {
+  aiMatchCurrentDemandId.value = item.id;
+  aiMatchLoadingId.value = item.id;
+  aiMatchDialogVisible.value = true;
+  aiMatchLoading.value = true;
+  aiMatchResults.value = [];
+  try {
+    const results = await aiAutoMatchApi(item.id);
+    aiMatchResults.value = Array.isArray(results) ? results : [];
+  } catch (e) {
+    aiMatchResults.value = [];
+  } finally {
+    aiMatchLoading.value = false;
+    aiMatchLoadingId.value = null;
+  }
+}
+
+function getAiRank(rawRank, index) {
+  const rank = Number(rawRank || index + 1);
+  if (!Number.isFinite(rank) || rank <= 0) {
+    return index + 1;
+  }
+  return rank;
+}
+
+function aiRankClass(rawRank, index) {
+  const rank = getAiRank(rawRank, index);
+  if (rank === 1) return 'is-top-1';
+  if (rank === 2) return 'is-top-2';
+  if (rank === 3) return 'is-top-3';
+  return 'is-top-other';
+}
+
+function normalizeAiText(value) {
+  const text = String(value || '').trim();
+  return text || '—';
+}
+
+function formatAiRating(value) {
+  const rating = Number(value || 0);
+  if (!Number.isFinite(rating) || rating <= 0) {
+    return '0.0';
+  }
+  return rating.toFixed(1);
+}
+
+function formatAiPriceRange(row) {
+  const min = Number(row?.priceMin || 0);
+  const max = Number(row?.priceMax || 0);
+  if (min > 0 && max > 0) {
+    return `${formatMoney(min)} - ${formatMoney(max)}`;
+  }
+  if (min > 0) return `${formatMoney(min)}`;
+  if (max > 0) return `${formatMoney(max)}`;
+  return '—';
+}
+
+function goWorkerPoolWithWorker(demandId, workerProfileId) {
+  aiMatchDialogVisible.value = false;
+  router.push({
+    path: '/worker-pool',
+    query: { demandId: String(demandId), highlightWorker: String(workerProfileId) },
   });
 }
 
@@ -1426,5 +1689,343 @@ onMounted(async () => {
   .ucx-filter-actions {
     width: 100%;
   }
+}
+
+.ai-match-dialog.el-dialog {
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 26px 58px rgba(10, 32, 70, 0.26);
+}
+
+.ai-match-dialog .el-dialog__header {
+  margin: 0;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid rgba(208, 222, 241, 0.7);
+  background:
+    radial-gradient(circle at 14% -60%, rgba(110, 180, 255, 0.35), transparent 54%),
+    linear-gradient(138deg, #f7fbff 0%, #f4fbf7 100%);
+}
+
+.ai-match-dialog .el-dialog__body {
+  padding: 16px 24px 22px;
+  background: #fbfdff;
+}
+
+.ai-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ai-dialog-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-dialog-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(17, 75, 160, 0.16);
+  border: 1px solid rgba(174, 203, 245, 0.9);
+}
+
+.ai-dialog-icon-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.ai-dialog-title-content h3 {
+  margin: 2px 0 0;
+  font-size: 31px;
+  line-height: 1.22;
+  font-weight: 800;
+  color: #122941;
+  letter-spacing: -0.01em;
+}
+
+.ai-dialog-kicker {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5c7892;
+  font-weight: 700;
+}
+
+.ai-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-dialog-state {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-loading-icon {
+  color: #1f67d9;
+}
+
+.ai-dialog-state-text {
+  margin: 12px 0 0;
+  color: #5a748e;
+  font-size: 14px;
+}
+
+.ai-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-match-subtitle {
+  margin: 0;
+  color: #5e7792;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.ai-match-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d9e7fb;
+  border-radius: 14px;
+  padding: 16px 16px 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fcff 100%);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.ai-match-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(22, 74, 142, 0.14);
+  border-color: #bdd6f7;
+}
+
+.ai-card-glow {
+  position: absolute;
+  right: -38px;
+  top: -38px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(81, 168, 255, 0.24), rgba(81, 168, 255, 0));
+}
+
+.ai-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.ai-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 62px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.ai-match-card.is-top-1 .ai-rank-badge {
+  color: #7a4700;
+  background: linear-gradient(120deg, #ffe58f, #ffd27b);
+}
+
+.ai-match-card.is-top-2 .ai-rank-badge {
+  color: #1f3c58;
+  background: linear-gradient(120deg, #dbeafe, #c6dffe);
+}
+
+.ai-match-card.is-top-3 .ai-rank-badge {
+  color: #0a5f51;
+  background: linear-gradient(120deg, #d1fae5, #bdf8dc);
+}
+
+.ai-worker-info h4 {
+  margin: 0;
+  font-size: 22px;
+  color: #132e4a;
+  font-weight: 700;
+}
+
+.ai-worker-sub {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #667f98;
+  font-size: 12px;
+}
+
+.ai-reason {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(140deg, #ecf7ff, #ebfff8);
+  border: 1px solid #d3eaf9;
+  color: #17456b;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.ai-meta-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ai-metric {
+  border: 1px solid #e2ecf8;
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: #ffffff;
+}
+
+.ai-metric span {
+  display: block;
+  color: #6f889f;
+  font-size: 12px;
+}
+
+.ai-metric strong {
+  display: block;
+  margin-top: 4px;
+  color: #123150;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ai-keywords {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ai-keyword-tag {
+  border-radius: 999px;
+  border-color: #cdddf4;
+  color: #2f5379;
+  background: #f3f8ff;
+}
+
+.ai-card-actions {
+  margin-top: 12px;
+}
+
+.ai-select-btn {
+  border-radius: 10px;
+  font-weight: 700;
+  padding: 10px 18px;
+  border: none;
+  background: linear-gradient(120deg, #2766d8, #1b51b6);
+  box-shadow: 0 10px 18px rgba(30, 84, 185, 0.28);
+}
+
+/* 全局可移动 AI 管家样式 */
+.global-ai-assistant {
+  position: fixed;
+  z-index: 2000;
+  cursor: grab;
+  user-select: none;
+  touch-action: none; /* 禁用系统触摸滚动干扰 */
+}
+.global-ai-assistant:active {
+  cursor: grabbing;
+}
+
+.ai-butler-bubble-global {
+  width: 56px;
+  height: 56px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 12px 26px rgba(39, 102, 216, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.68) inset;
+  border: 2px solid #dce8ff;
+  position: relative;
+  overflow: visible;
+  isolation: isolate;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.global-ai-assistant:hover .ai-butler-bubble-global {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.ai-butler-img-global {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.ai-match-pulse-global {
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #ff4d4f 0%,
+    #ffa940 14%,
+    #ffe45e 28%,
+    #52c41a 42%,
+    #13c2c2 56%,
+    #2f54eb 72%,
+    #b37feb 86%,
+    #ff4d4f 100%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+  animation: rgb-ring-spin 2.8s linear infinite;
+  opacity: 0.94;
+  z-index: -1;
+}
+
+.ai-match-pulse-global::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: inherit;
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px));
+  filter: blur(7px);
+  opacity: 0.52;
+  animation: rgb-ring-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes rgb-ring-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rgb-ring-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.42; }
+  50% { transform: scale(1.18); opacity: 0.9; }
+}
+
+/* 调整卡片容器以支持绝对定位 */
+.ucx-demand-card {
+  position: relative;
 }
 </style>

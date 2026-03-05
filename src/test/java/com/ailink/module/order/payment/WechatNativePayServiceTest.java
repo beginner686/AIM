@@ -18,6 +18,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.Signature;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -45,6 +46,7 @@ class WechatNativePayServiceTest {
         properties.setAppId("wx-test-app");
         properties.setMchId("mch-expected");
         properties.setMerchantSerialNo("serial-001");
+        properties.setPlatformSerialNo("platform-serial-001");
         properties.setPrivateKeyPath(merchantPrivateKeyPath.toString());
         properties.setPlatformPublicKeyPath(platformPublicKeyPath.toString());
         properties.setApiV3Key("0123456789abcdef0123456789abcdef");
@@ -54,7 +56,8 @@ class WechatNativePayServiceTest {
                 properties,
                 new RestTemplate(),
                 objectMapper,
-                new DefaultResourceLoader());
+                new DefaultResourceLoader(),
+                null);
 
         String plainJson = objectMapper.writeValueAsString(buildTransactionPayload(
                 "mch-illegal",
@@ -77,14 +80,14 @@ class WechatNativePayServiceTest {
                 "ciphertext", cipherText));
         String body = objectMapper.writeValueAsString(notifyPayload);
 
-        String timestamp = "1710000000";
+        String timestamp = String.valueOf(Instant.now().getEpochSecond());
         String nonce = "nonce-123";
         String signature = signWithRsa(
                 keyPair.getPrivate(),
                 timestamp + "\n" + nonce + "\n" + body + "\n");
 
         BizException exception = assertThrows(BizException.class,
-                () -> service.verifyAndParseNotify(body, timestamp, nonce, signature));
+                () -> service.verifyAndParseNotify(body, timestamp, nonce, "platform-serial-001", signature));
         assertTrue(exception.getMessage().contains("merchant validation failed"));
     }
 

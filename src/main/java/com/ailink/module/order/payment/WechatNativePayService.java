@@ -9,11 +9,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
@@ -32,11 +34,13 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class WechatNativePayService {
@@ -44,23 +48,29 @@ public class WechatNativePayService {
     private static final Logger log = LoggerFactory.getLogger(WechatNativePayService.class);
     private static final String EXPECTED_EVENT_TYPE = "TRANSACTION.SUCCESS";
     private static final String EXPECTED_CURRENCY = "CNY";
+    private static final long MAX_NOTIFY_DRIFT_SECONDS = 300;
+    private static final long NONCE_REPLAY_WINDOW_SECONDS = 600;
 
     private final WechatPayProperties wechatPayProperties;
     private final RestTemplate wechatPayRestTemplate;
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final ConcurrentHashMap<String, Long> nonceReplayCache = new ConcurrentHashMap<>();
 
     private volatile PrivateKey merchantPrivateKey;
     private volatile PublicKey platformPublicKey;
 
     public WechatNativePayService(WechatPayProperties wechatPayProperties,
-                                  RestTemplate wechatPayRestTemplate,
-                                  ObjectMapper objectMapper,
-                                  ResourceLoader resourceLoader) {
+            RestTemplate wechatPayRestTemplate,
+            ObjectMapper objectMapper,
+            ResourceLoader resourceLoader,
+            StringRedisTemplate stringRedisTemplate) {
         this.wechatPayProperties = wechatPayProperties;
         this.wechatPayRestTemplate = wechatPayRestTemplate;
         this.objectMapper = objectMapper;
         this.resourceLoader = resourceLoader;
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     public boolean enabled() {
@@ -121,13 +131,16 @@ public class WechatNativePayService {
     }
 
     public WechatNotifyTransaction verifyAndParseNotify(String body,
-                                                        String timestamp,
-                                                        String nonce,
-                                                        String signature) {
+            String timestamp,
+            String nonce,
+            String serial,
+            String signature) {
         if (!enabled()) {
             throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "wechat pay is disabled");
         }
         ensureRequiredConfig();
+        long ts = validateNotifyHeadersAndTimestamp(timestamp, nonce, serial, signature);
+        validateAndCheckReplayNonce(nonce, ts);
         if (!verifySignature(timestamp, nonce, body, signature)) {
             throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "wechat notify signature verification failed");
         }
@@ -142,6 +155,8 @@ public class WechatNativePayService {
             validateNotifyPayload(root, txRoot);
 
             WechatNotifyTransaction tx = new WechatNotifyTransaction();
+            tx.setEventId(root.path("id").asText(""));
+            tx.setRawContent(body);
             tx.setOutTradeNo(txRoot.path("out_trade_no").asText(""));
             tx.setTransactionId(txRoot.path("transaction_id").asText(""));
             tx.setTradeState(txRoot.path("trade_state").asText(""));
@@ -153,6 +168,62 @@ public class WechatNativePayService {
         } catch (Exception e) {
             log.error("failed to parse wechat notify payload", e);
             throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "failed to parse wechat notify payload");
+        }
+    }
+
+    public WechatNotifyTransaction verifyAndParseNotify(String body,
+            String timestamp,
+            String nonce,
+            String signature) {
+        return verifyAndParseNotify(body, timestamp, nonce, wechatPayProperties.getPlatformSerialNo(), signature);
+    }
+
+    private long validateNotifyHeadersAndTimestamp(String timestamp,
+            String nonce,
+            String serial,
+            String signature) {
+        if (!StringUtils.hasText(timestamp)
+                || !StringUtils.hasText(nonce)
+                || !StringUtils.hasText(serial)
+                || !StringUtils.hasText(signature)) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "wechat notify required headers are missing");
+        }
+        if (!wechatPayProperties.getPlatformSerialNo().equalsIgnoreCase(serial.trim())) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "wechat notify platform serial mismatch");
+        }
+        try {
+            long ts = Long.parseLong(timestamp.trim());
+            long now = Instant.now().getEpochSecond();
+            if (Math.abs(now - ts) > MAX_NOTIFY_DRIFT_SECONDS) {
+                throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "wechat notify timestamp expired");
+            }
+            return ts;
+        } catch (NumberFormatException e) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "wechat notify timestamp invalid");
+        }
+    }
+
+    private void validateAndCheckReplayNonce(String nonce, long timestamp) {
+        String replayKey = nonce.trim() + ":" + timestamp;
+        String redisKey = "wechat:notify:nonce:" + replayKey;
+        long now = Instant.now().getEpochSecond();
+        if (stringRedisTemplate != null) {
+            try {
+                Boolean first = stringRedisTemplate.opsForValue().setIfAbsent(
+                        redisKey, "1", Duration.ofSeconds(NONCE_REPLAY_WINDOW_SECONDS));
+                if (Boolean.TRUE.equals(first)) {
+                    return;
+                }
+                throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "wechat notify replay detected");
+            } catch (DataAccessException e) {
+                log.error("redis replay check failed, fallback to local cache, key={}", redisKey, e);
+            }
+        }
+
+        nonceReplayCache.entrySet().removeIf(entry -> now - entry.getValue() > NONCE_REPLAY_WINDOW_SECONDS);
+        Long existing = nonceReplayCache.putIfAbsent(replayKey, now);
+        if (existing != null && now - existing <= NONCE_REPLAY_WINDOW_SECONDS) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "wechat notify replay detected");
         }
     }
 
@@ -298,6 +369,7 @@ public class WechatNativePayService {
         if (!StringUtils.hasText(wechatPayProperties.getAppId())
                 || !StringUtils.hasText(wechatPayProperties.getMchId())
                 || !StringUtils.hasText(wechatPayProperties.getMerchantSerialNo())
+                || !StringUtils.hasText(wechatPayProperties.getPlatformSerialNo())
                 || !StringUtils.hasText(wechatPayProperties.getPrivateKeyPath())
                 || !StringUtils.hasText(wechatPayProperties.getPlatformPublicKeyPath())
                 || !StringUtils.hasText(wechatPayProperties.getApiV3Key())

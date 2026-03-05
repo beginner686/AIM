@@ -43,6 +43,13 @@ export function getMyOrderListApi() {
   });
 }
 
+export function getOrderFeeConfigApi() {
+  return request({
+    url: '/order/config/fees',
+    method: 'get',
+  });
+}
+
 export function deleteMyOrdersApi(orderIds = []) {
   return request({
     url: '/order/my/delete',
@@ -150,5 +157,13 @@ export function getOrderDisputesApi(orderId) {
   return request({
     url: `/order/${orderId}/dispute`,
     method: 'get',
+  });
+}
+
+export function aiAutoMatchApi(demandId) {
+  return request({
+    url: `/ai-match/demand/${demandId}/auto`,
+    method: 'post',
+    silentBusinessError: true,
   });
 }

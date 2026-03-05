@@ -121,9 +121,21 @@ public class ServiceFeePaymentTxService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void markPaidAndUnlock(String paymentNo, String transactionId, String remark) {
+        PlatformPayment paymentSnapshot = platformPaymentMapper.selectByPaymentNo(paymentNo);
+        if (paymentSnapshot == null) {
+            throw new BizException(ErrorCode.NOT_FOUND.getCode(), "payment order not found");
+        }
+        Order order = orderMapper.selectByIdForUpdate(paymentSnapshot.getOrderId());
+        if (order == null) {
+            throw new BizException(ErrorCode.NOT_FOUND.getCode(), "order not found");
+        }
+
         PlatformPayment payment = platformPaymentMapper.selectByPaymentNoForUpdate(paymentNo);
         if (payment == null) {
             throw new BizException(ErrorCode.NOT_FOUND.getCode(), "payment order not found");
+        }
+        if (!order.getId().equals(payment.getOrderId())) {
+            throw new BizException(ErrorCode.BUSINESS_ERROR.getCode(), "payment order relation mismatch");
         }
         if (PlatformPaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
             return;
@@ -141,10 +153,6 @@ public class ServiceFeePaymentTxService {
         }
         platformPaymentMapper.updateById(payment);
 
-        Order order = orderMapper.selectByIdForUpdate(payment.getOrderId());
-        if (order == null) {
-            throw new BizException(ErrorCode.NOT_FOUND.getCode(), "order not found");
-        }
         if (ServiceFeeStatus.PAID.name().equals(order.getServiceFeeStatus())) {
             return;
         }
@@ -152,6 +160,15 @@ public class ServiceFeePaymentTxService {
         order.setServiceFeeStatus(ServiceFeeStatus.PAID.name());
         order.setServiceFeePaidTime(LocalDateTime.now());
         order.setPayStatus("PAID");
+        if (OrderStatus.CLOSED.name().equals(order.getStatus())) {
+            order.setRiskStatus("ABNORMAL");
+            String closedReason = order.getClosedReason();
+            if (closedReason == null || !closedReason.contains("PAID_AFTER_CLOSED")) {
+                order.setClosedReason((closedReason == null ? "" : closedReason + " | ") + "PAID_AFTER_CLOSED");
+            }
+            orderMapper.updateById(order);
+            return;
+        }
         orderMapper.updateById(order);
 
         if (OrderStatus.SERVICE_FEE_REQUIRED.name().equals(order.getStatus())) {

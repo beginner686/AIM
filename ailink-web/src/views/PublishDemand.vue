@@ -1,197 +1,275 @@
 <template>
   <div class="publish-page">
-	    <section class="hero-strip reveal-up">
-        <div class="orb orb-a" />
-        <div class="orb orb-b" />
-        <div class="hero-content">
-	        <p class="kicker">{{ t('publishDemand.kicker') }}</p>
-	        <h1>
-            <span class="gradient-text">{{ t('publishDemand.title') }}</span>
-          </h1>
-	        <p class="sub">{{ t('publishDemand.subtitle') }}</p>
-	      </div>
-        <div class="hero-badges reveal-up delay-1">
-          <span class="badge">{{ t('publishDemand.badgeEscrow') }}</span>
-          <span class="badge">{{ t('publishDemand.badgeRisk') }}</span>
-          <span class="badge">{{ t('publishDemand.badgeCrossBorder') }}</span>
-	      </div>
-	    </section>
-	    <el-alert
-	      v-if="hasPreferredWorker"
-	      class="preferred-worker-alert"
-	      type="success"
-	      :closable="false"
-	      show-icon
-	    >
-	      <template #title>
-	        {{ t('publishDemand.preferredWorkerTitle', { name: preferredWorkerDisplayName }) }}
-	      </template>
-	      <div class="preferred-worker-body">
-	        <span>{{ t('publishDemand.preferredWorkerHint', { id: preferredWorkerProfileId }) }}</span>
-	        <span v-if="preferredWorkerCountry">{{ t('publishDemand.preferredWorkerCountry', { country: preferredWorkerCountry }) }}</span>
-	        <span v-if="preferredWorkerCategory">{{ t('publishDemand.preferredWorkerCategory', { category: preferredWorkerCategory }) }}</span>
-	        <el-button link type="primary" @click="clearPreferredWorker">{{ t('publishDemand.clearPreferredWorker') }}</el-button>
-	      </div>
-	    </el-alert>
+    <section class="hero-strip reveal-up">
+      <div class="orb orb-a" />
+      <div class="orb orb-b" />
+      <div class="hero-content">
+        <p class="kicker">{{ t('publishDemand.kicker') }}</p>
+        <h1>
+          <span class="gradient-text">{{ t('publishDemand.poolPageTitle') }}</span>
+        </h1>
+        <p class="sub">{{ t('publishDemand.poolPageSubtitle') }}</p>
+      </div>
+      <div class="hero-actions reveal-up delay-1">
+        <el-button class="hero-btn-primary" @click="openCreateDialog">{{ t('publishDemand.iHaveDemand') }}</el-button>
+      </div>
+    </section>
 
-	    <section class="content-grid">
-      <el-card class="form-card reveal-up delay-1" shadow="never">
-        <template #header>
-          <div class="section-head">
-            <h2>{{ t('publishDemand.sectionInfo') }}</h2>
-            <span class="section-tip">{{ t('publishDemand.requiredTip') }}</span>
+    <el-alert
+      v-if="hasPreferredWorker"
+      class="preferred-worker-alert"
+      type="success"
+      :closable="false"
+      show-icon
+    >
+      <template #title>
+        {{ t('publishDemand.preferredWorkerTitle', { name: preferredWorkerDisplayName }) }}
+      </template>
+      <div class="preferred-worker-body">
+        <span>{{ t('publishDemand.preferredWorkerHint', { id: preferredWorkerProfileId }) }}</span>
+        <span v-if="preferredWorkerCountry">{{ t('publishDemand.preferredWorkerCountry', { country: preferredWorkerCountry }) }}</span>
+        <span v-if="preferredWorkerCategory">{{ t('publishDemand.preferredWorkerCategory', { category: preferredWorkerCategory }) }}</span>
+        <el-button link type="primary" @click="clearPreferredWorker">{{ t('publishDemand.clearPreferredWorker') }}</el-button>
+      </div>
+    </el-alert>
+
+    <section class="metric-grid reveal-up delay-1">
+      <article class="metric">
+        <p class="label">{{ t('publishDemand.poolMetricTotal') }}</p>
+        <p class="value">{{ demandPool.length }}</p>
+      </article>
+      <article class="metric">
+        <p class="label">{{ t('publishDemand.poolMetricOpen') }}</p>
+        <p class="value">{{ openDemandCount }}</p>
+      </article>
+      <article class="metric">
+        <p class="label">{{ t('publishDemand.poolMetricActive') }}</p>
+        <p class="value">{{ activeDemandCount }}</p>
+      </article>
+      <article class="metric">
+        <p class="label">{{ t('publishDemand.poolMetricShown') }}</p>
+        <p class="value">{{ filteredDemandPool.length }}</p>
+      </article>
+    </section>
+
+    <el-card class="filter-card reveal-up delay-1" shadow="never">
+      <template #header>
+        <div class="section-head">
+          <h2>{{ t('publishDemand.poolFilterTitle') }}</h2>
+          <span class="section-tip">{{ t('publishDemand.poolFilterHint') }}</span>
+        </div>
+      </template>
+      <div class="pool-filter-row">
+        <el-input v-model.trim="poolKeyword" clearable :placeholder="t('publishDemand.poolSearchPlaceholder')" class="pool-filter-item" />
+        <el-select v-model="poolCountry" clearable filterable :placeholder="t('publishDemand.fieldCountry')" class="pool-filter-item">
+          <el-option v-for="item in countryOptions" :key="item.code" :label="item.label" :value="item.code" />
+        </el-select>
+        <el-select v-model="poolStatus" clearable :placeholder="t('publishDemand.poolStatusPlaceholder')" class="pool-filter-item">
+          <el-option :label="t('publishDemand.poolAllStatus')" value="" />
+          <el-option v-for="item in demandStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+        <el-button @click="clearPoolFilters">{{ t('publishDemand.reset') }}</el-button>
+        <el-button type="primary" @click="openCreateDialog">{{ t('publishDemand.iHaveDemand') }}</el-button>
+      </div>
+    </el-card>
+
+    <el-card class="list-card reveal-up delay-1" shadow="never">
+      <template #header>
+        <div class="section-head">
+          <h2>{{ t('publishDemand.poolListTitle') }}</h2>
+          <span class="section-tip">{{ t('publishDemand.poolListCount', { count: filteredDemandPool.length }) }}</span>
+        </div>
+      </template>
+      <div v-if="poolLoading" class="loading-wrap">
+        <el-skeleton :rows="5" animated />
+      </div>
+      <el-empty v-else-if="filteredDemandPool.length === 0" :description="t('publishDemand.poolEmpty')" :image-size="88" />
+      <div v-else class="demand-grid">
+        <article v-for="item in filteredDemandPool" :key="item.id" class="demand-card">
+          <div class="demand-top">
+            <h3>{{ item.title || resolveDemandCategoryLabel(item.category) || `#${item.id}` }}</h3>
+            <el-tag :type="demandStatusType(item.status)">{{ demandStatusText(item.status) }}</el-tag>
           </div>
-        </template>
+          <p class="demand-desc">{{ item.description || t('publishDemand.noDescription') }}</p>
+          <div class="demand-meta">
+            <span>{{ t('publishDemand.poolMetaId') }} {{ item.id }}</span>
+            <span>{{ t('publishDemand.poolMetaCountry') }} {{ getCountryLabel(item.targetCountry || item.country) || '—' }}</span>
+            <span>{{ t('publishDemand.poolMetaCategory') }} {{ resolveDemandCategoryLabel(item.category) || '—' }}</span>
+            <span>{{ t('publishDemand.poolMetaBudget') }} {{ formatMoney(item.budget) }}</span>
+          </div>
+          <div class="demand-actions">
+            <el-button size="small" @click="goWorkerPool(item.id)">{{ t('publishDemand.poolMatchWorker') }}</el-button>
+          </div>
+        </article>
+      </div>
+    </el-card>
 
-        <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">
-          <div class="two-col">
-            <el-form-item :label="t('publishDemand.fieldTitle')" prop="title">
-              <el-input v-model="formData.title" maxlength="50" :placeholder="t('publishDemand.placeholderTitle')" />
-            </el-form-item>
+    <el-dialog
+      v-model="createDialogVisible"
+      :title="t('publishDemand.dialogTitle')"
+      width="1180px"
+      class="publish-create-dialog"
+      destroy-on-close
+    >
+      <section class="content-grid">
+        <el-card class="form-card" shadow="never">
+          <template #header>
+            <div class="section-head">
+              <h2>{{ t('publishDemand.sectionInfo') }}</h2>
+              <span class="section-tip">{{ t('publishDemand.requiredTip') }}</span>
+            </div>
+          </template>
 
-            <el-form-item :label="t('publishDemand.fieldCategory')" prop="category">
-              <el-autocomplete
-                v-model="formData.category"
-                class="category-autocomplete"
-                popper-class="category-autocomplete-popper"
-                :fetch-suggestions="queryCategorySuggestions"
-                :trigger-on-focus="true"
-                :highlight-first-item="true"
-                maxlength="50"
-                clearable
-                :placeholder="t('publishDemand.placeholderCategory')"
-                @input="handleCategoryInput"
-                @select="handleCategorySelect"
+          <el-form ref="formRef" :model="formData" :rules="rules" label-position="top">
+            <div class="two-col">
+              <el-form-item :label="t('publishDemand.fieldTitle')" prop="title">
+                <el-input v-model="formData.title" maxlength="50" :placeholder="t('publishDemand.placeholderTitle')" />
+              </el-form-item>
+
+              <el-form-item :label="t('publishDemand.fieldCategory')" prop="category">
+                <el-autocomplete
+                  v-model="formData.category"
+                  class="category-autocomplete"
+                  popper-class="category-autocomplete-popper"
+                  :fetch-suggestions="queryCategorySuggestions"
+                  :trigger-on-focus="true"
+                  :highlight-first-item="true"
+                  maxlength="50"
+                  clearable
+                  :placeholder="t('publishDemand.placeholderCategory')"
+                  @input="handleCategoryInput"
+                  @select="handleCategorySelect"
+                >
+                  <template #default="{ item }">
+                    <div class="category-suggestion" :class="{ 'is-fallback': item.isFallback }">
+                      <span v-if="item.isFallback">{{ item.label }}</span>
+                      <span v-else v-html="highlightKeyword(item.label, latestCategoryKeyword)"></span>
+                    </div>
+                  </template>
+                </el-autocomplete>
+              </el-form-item>
+            </div>
+
+            <div class="preset-row hot-row">
+              <span class="preset-label">{{ t('publishDemand.hotCategories') }}</span>
+              <el-tag
+                v-for="item in hotCategoryOptions"
+                :key="item.code"
+                class="hot-tag"
+                :class="{ 'is-active': isHotCategoryActive(item) }"
+                :type="isHotCategoryActive(item) ? 'success' : 'info'"
+                :effect="isHotCategoryActive(item) ? 'dark' : 'plain'"
+                @click="handleHotCategoryClick(item)"
               >
-                <template #default="{ item }">
-                  <div class="category-suggestion" :class="{ 'is-fallback': item.isFallback }">
-                    <span v-if="item.isFallback">{{ item.label }}</span>
-                    <span v-else v-html="highlightKeyword(item.label, latestCategoryKeyword)"></span>
-                  </div>
-                </template>
-              </el-autocomplete>
-            </el-form-item>
-          </div>
+                {{ item.label }}
+              </el-tag>
+            </div>
 
-          <div class="preset-row hot-row">
-            <span class="preset-label">{{ t('publishDemand.hotCategories') }}</span>
-            <el-tag
-              v-for="item in hotCategoryOptions"
-              :key="item.code"
-              class="hot-tag"
-              :class="{ 'is-active': isHotCategoryActive(item) }"
-              :type="isHotCategoryActive(item) ? 'success' : 'info'"
-              :effect="isHotCategoryActive(item) ? 'dark' : 'plain'"
-              @click="handleHotCategoryClick(item)"
-            >
-              {{ item.label }}
-            </el-tag>
-          </div>
+            <div class="two-col">
+              <el-form-item :label="t('publishDemand.fieldBudget')" prop="budget">
+                <el-input-number
+                  v-model="formData.budget"
+                  :min="0.01"
+                  :step="50"
+                  :precision="2"
+                  controls-position="right"
+                  style="width: 100%"
+                />
+              </el-form-item>
 
-          <div class="two-col">
-            <el-form-item :label="t('publishDemand.fieldBudget')" prop="budget">
-              <el-input-number
-                v-model="formData.budget"
-                :min="0.01"
-                :step="50"
-                :precision="2"
-                controls-position="right"
-                style="width: 100%"
+              <el-form-item :label="t('publishDemand.fieldCountry')" prop="country">
+                <el-select
+                  v-model="formData.country"
+                  class="country-select"
+                  filterable
+                  clearable
+                  :placeholder="t('publishDemand.placeholderCountry')"
+                  :loading="countryLoading"
+                >
+                  <el-option-group
+                    v-for="group in groupedCountryOptions"
+                    :key="group.key"
+                    :label="group.label"
+                  >
+                    <el-option
+                      v-for="item in group.options"
+                      :key="item.code"
+                      :value="item.code"
+                      :label="item.label"
+                    >
+                      <div class="country-option-item">
+                        <span class="country-option-label">{{ item.label }}</span>
+                        <span v-if="item.hot" class="country-option-hot">{{ t('publishDemand.recommended') }}</span>
+                      </div>
+                    </el-option>
+                  </el-option-group>
+                </el-select>
+                <div v-if="!countryLoading && groupedCountryOptions.length === 0" class="country-empty-tip">
+                  {{ t('publishDemand.countryEmptyTip') }}
+                </div>
+              </el-form-item>
+            </div>
+
+            <el-form-item :label="t('publishDemand.fieldDescription')" prop="description">
+              <el-input
+                v-model="formData.description"
+                type="textarea"
+                :rows="6"
+                maxlength="500"
+                show-word-limit
+                :placeholder="t('publishDemand.placeholderDescription')"
               />
             </el-form-item>
 
-            <el-form-item :label="t('publishDemand.fieldCountry')" prop="country">
-              <el-select
-                v-model="formData.country"
-                class="country-select"
-                filterable
-                clearable
-                :placeholder="t('publishDemand.placeholderCountry')"
-                :loading="countryLoading"
-              >
-                <el-option-group
-                  v-for="group in groupedCountryOptions"
-                  :key="group.key"
-                  :label="group.label"
-                >
-                  <el-option
-                    v-for="item in group.options"
-                    :key="item.code"
-                    :value="item.code"
-                    :label="item.label"
-                  >
-                    <div class="country-option-item">
-                      <span class="country-option-label">{{ item.label }}</span>
-                      <span v-if="item.hot" class="country-option-hot">{{ t('publishDemand.recommended') }}</span>
-                    </div>
-                  </el-option>
-                </el-option-group>
-              </el-select>
-              <div v-if="!countryLoading && groupedCountryOptions.length === 0" class="country-empty-tip">
-                {{ t('publishDemand.countryEmptyTip') }}
+            <div class="action-row">
+              <el-button type="primary" :loading="submitLoading" @click="handleSubmit">{{ t('publishDemand.submit') }}</el-button>
+              <el-button @click="resetForm">{{ t('publishDemand.reset') }}</el-button>
+            </div>
+          </el-form>
+        </el-card>
+
+        <div class="right-stack">
+          <el-card class="side-card" shadow="never">
+            <template #header>
+              <div class="section-head">
+                <h2>{{ t('publishDemand.splitTitle') }}</h2>
               </div>
-            </el-form-item>
-          </div>
+            </template>
 
-          <el-form-item :label="t('publishDemand.fieldDescription')" prop="description">
-            <el-input
-              v-model="formData.description"
-              type="textarea"
-              :rows="6"
-              maxlength="500"
-              show-word-limit
-              :placeholder="t('publishDemand.placeholderDescription')"
-            />
-          </el-form-item>
-
-          <div class="action-row">
-            <el-button type="primary" :loading="submitLoading" @click="handleSubmit">{{ t('publishDemand.submit') }}</el-button>
-            <el-button @click="resetForm">{{ t('publishDemand.reset') }}</el-button>
-          </div>
-        </el-form>
-      </el-card>
-
-      <div class="right-stack">
-        <el-card class="side-card reveal-up delay-1" shadow="never">
-          <template #header>
-            <div class="section-head">
-              <h2>{{ t('publishDemand.splitTitle') }}</h2>
+            <div class="split-item">
+              <span>{{ t('publishDemand.splitOrderBudget') }}</span>
+              <strong>{{ formatMoney(budgetAmount) }}</strong>
             </div>
-          </template>
-
-          <div class="split-item">
-            <span>{{ t('publishDemand.splitOrderBudget') }}</span>
-            <strong>{{ formatMoney(budgetAmount) }}</strong>
-          </div>
-          <div class="split-item">
-            <span>{{ t('publishDemand.splitPlatformFee') }}</span>
-            <strong>{{ formatMoney(platformFeeAmount) }}</strong>
-          </div>
-          <div class="split-item">
-            <span>{{ t('publishDemand.splitEscrowFee') }}</span>
-            <strong>{{ formatMoney(escrowFeeAmount) }}</strong>
-          </div>
-          <div class="split-item highlight">
-            <span>{{ t('publishDemand.splitWorkerIncome') }}</span>
-            <strong>{{ formatMoney(workerIncomeAmount) }}</strong>
-          </div>
-        </el-card>
-
-        <el-card class="side-card reveal-up delay-1" shadow="never">
-          <template #header>
-            <div class="section-head">
-              <h2>{{ t('publishDemand.tipsTitle') }}</h2>
+            <div class="split-item">
+              <span>{{ t('publishDemand.splitPlatformFee', { rate: formatRatePercent(platformFeeRate) }) }}</span>
+              <strong>{{ formatMoney(platformFeeAmount) }}</strong>
             </div>
-          </template>
-          <ul class="tips">
-            <li>{{ t('publishDemand.tip1') }}</li>
-            <li>{{ t('publishDemand.tip2') }}</li>
-            <li>{{ t('publishDemand.tip3') }}</li>
-            <li>{{ t('publishDemand.tip4') }}</li>
-          </ul>
-        </el-card>
-      </div>
-    </section>
+            <div class="split-item">
+              <span>{{ t('publishDemand.splitEscrowFee', { rate: formatRatePercent(escrowFeeRate) }) }}</span>
+              <strong>{{ formatMoney(escrowFeeAmount) }}</strong>
+            </div>
+            <div class="split-item highlight">
+              <span>{{ t('publishDemand.splitWorkerIncome') }}</span>
+              <strong>{{ formatMoney(workerIncomeAmount) }}</strong>
+            </div>
+          </el-card>
+
+          <el-card class="side-card" shadow="never">
+            <template #header>
+              <div class="section-head">
+                <h2>{{ t('publishDemand.tipsTitle') }}</h2>
+              </div>
+            </template>
+            <ul class="tips">
+              <li>{{ t('publishDemand.tip1') }}</li>
+              <li>{{ t('publishDemand.tip2') }}</li>
+              <li>{{ t('publishDemand.tip3') }}</li>
+              <li>{{ t('publishDemand.tip4') }}</li>
+            </ul>
+          </el-card>
+        </div>
+      </section>
+    </el-dialog>
   </div>
 </template>
 
@@ -200,9 +278,19 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { createDemandApi } from '@/api/demand';
+import { createDemandApi, getMyDemandListApi } from '@/api/demand';
+import { getOrderFeeConfigApi } from '@/api/order';
 import { getCountryDictApi } from '@/api/dict';
-import { CATEGORY_OPTIONS, CATEGORY_PRESETS } from '@/dicts';
+import {
+  CATEGORY_OPTIONS,
+  CATEGORY_PRESETS,
+  DEMAND_ACTIVE_STATUSES,
+  DEMAND_OPEN_STATUSES,
+  DEMAND_STATUS_DICT,
+  getDemandStatusLabel,
+  getDemandStatusTag,
+  toSelectOptions,
+} from '@/dicts';
 import { formatMoney } from '@/utils/format';
 
 const router = useRouter();
@@ -210,10 +298,18 @@ const route = useRoute();
 const { t, locale } = useI18n();
 const formRef = ref(null);
 const submitLoading = ref(false);
+const createDialogVisible = ref(false);
 const preferredWorkerProfileId = ref(0);
 const preferredWorkerName = ref('');
 const preferredWorkerCountry = ref('');
 const preferredWorkerCategory = ref('');
+const poolLoading = ref(false);
+const demandPool = ref([]);
+const poolKeyword = ref('');
+const poolCountry = ref('');
+const poolStatus = ref('');
+const platformFeeRate = ref(0);
+const escrowFeeRate = ref(0);
 
 const formData = reactive({
   title: '',
@@ -261,6 +357,17 @@ const CATEGORY_I18N_KEY_MAP = {
 
 const countryOptions = ref([]);
 const countryLoading = ref(false);
+const demandStatusOptions = computed(() => toSelectOptions(DEMAND_STATUS_DICT));
+const countryLabelMap = computed(() => {
+  const map = new Map();
+  countryOptions.value.forEach((item) => {
+    const code = String(item?.code || '').trim().toUpperCase();
+    const label = String(item?.label || '').trim();
+    if (code) map.set(code, label);
+    if (label) map.set(label, label);
+  });
+  return map;
+});
 
 const categoryOptionList = computed(() => {
   const fromOptions = Array.isArray(CATEGORY_OPTIONS) ? CATEGORY_OPTIONS : [];
@@ -352,10 +459,33 @@ const rules = computed(() => ({
 }));
 
 const budgetAmount = computed(() => Number(formData.budget || 0));
-const platformFeeAmount = computed(() => round2(budgetAmount.value * 0.06));
-const escrowFeeAmount = computed(() => round2(budgetAmount.value * 0.005));
+const platformFeeAmount = computed(() => round2(budgetAmount.value * Number(platformFeeRate.value || 0)));
+const escrowFeeAmount = computed(() => round2(budgetAmount.value * Number(escrowFeeRate.value || 0)));
 const workerIncomeAmount = computed(() => round2(Math.max(0, budgetAmount.value - platformFeeAmount.value - escrowFeeAmount.value)));
 const hasPreferredWorker = computed(() => preferredWorkerProfileId.value > 0);
+const filteredDemandPool = computed(() => {
+  const keyword = String(poolKeyword.value || '').trim().toLowerCase();
+  const country = String(poolCountry.value || '').trim().toUpperCase();
+  const status = String(poolStatus.value || '').trim().toUpperCase();
+  return demandPool.value.filter((item) => {
+    const itemCountry = String(item?.targetCountry || item?.country || '').trim().toUpperCase();
+    const itemStatus = normalizeDemandStatus(item?.status);
+    const title = String(item?.title || '').toLowerCase();
+    const category = String(item?.category || '').toLowerCase();
+    const description = String(item?.description || '').toLowerCase();
+    const idText = String(item?.id || '');
+    const keywordMatch = !keyword
+      || title.includes(keyword)
+      || category.includes(keyword)
+      || description.includes(keyword)
+      || idText.includes(keyword);
+    const countryMatch = !country || itemCountry === country;
+    const statusMatch = !status || itemStatus === status;
+    return keywordMatch && countryMatch && statusMatch;
+  });
+});
+const openDemandCount = computed(() => demandPool.value.filter((item) => isOpenDemand(item)).length);
+const activeDemandCount = computed(() => demandPool.value.filter((item) => isActiveDemand(item)).length);
 const preferredWorkerDisplayName = computed(() => {
   const name = String(preferredWorkerName.value || '').trim();
   if (name) return name;
@@ -364,6 +494,14 @@ const preferredWorkerDisplayName = computed(() => {
 
 function round2(value) {
   return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+function formatRatePercent(rate) {
+  const value = Number(rate || 0);
+  if (!Number.isFinite(value) || value <= 0) {
+    return '0';
+  }
+  return (value * 100).toFixed(2);
 }
 
 function queryCategorySuggestions(queryString, cb) {
@@ -485,6 +623,49 @@ function localizeCategoryLabel(label) {
   return i18nKey ? t(i18nKey) : text;
 }
 
+function resolveDemandCategoryLabel(rawCategory) {
+  const text = String(rawCategory || '').trim();
+  if (!text) return '';
+  if (text === FALLBACK_OTHER_CODE) {
+    return fallbackOtherLabel.value;
+  }
+  const byCode = categoryOptionList.value.find((item) => String(item.code || '').trim() === text);
+  if (byCode?.label) return byCode.label;
+  return localizeCategoryLabel(text);
+}
+
+function normalizeDemandStatus(status) {
+  return String(status || '').trim().toUpperCase();
+}
+
+function isOpenDemand(item) {
+  const status = normalizeDemandStatus(item?.status);
+  return DEMAND_OPEN_STATUSES.includes(status) || status === 'OPEN';
+}
+
+function isActiveDemand(item) {
+  const status = normalizeDemandStatus(item?.status);
+  return DEMAND_ACTIVE_STATUSES.includes(status) || status === 'MATCHED' || status === 'IN_PROGRESS';
+}
+
+function demandStatusText(status) {
+  return getDemandStatusLabel(status);
+}
+
+function demandStatusType(status) {
+  return getDemandStatusTag(status) || 'info';
+}
+
+function getCountryLabel(rawCountry) {
+  const country = String(rawCountry || '').trim();
+  if (!country) return '';
+  if (/^[A-Za-z]{2}$/.test(country)) {
+    const code = country.toUpperCase();
+    return countryLabelMap.value.get(code) || localizeCountryLabel(code, code);
+  }
+  return countryLabelMap.value.get(country) || country;
+}
+
 function normalizeCountryOption(row, index) {
   const code = String(row?.dict_code || row?.dictCode || '').trim().toUpperCase();
   const rawLabel = String(row?.dict_label || row?.dictLabel || '').trim();
@@ -530,6 +711,51 @@ async function loadCountryOptions() {
   }
 }
 
+async function loadFeeConfig() {
+  try {
+    const data = await getOrderFeeConfigApi();
+    platformFeeRate.value = Number(data?.platformFeeRate || 0);
+    escrowFeeRate.value = Number(data?.escrowFeeRate || 0);
+  } catch {
+    platformFeeRate.value = 0;
+    escrowFeeRate.value = 0;
+    ElMessage.error(t('publishDemand.feeConfigLoadFailed'));
+  }
+}
+
+async function loadDemandPool() {
+  poolLoading.value = true;
+  try {
+    const data = await getMyDemandListApi();
+    demandPool.value = Array.isArray(data) ? data : [];
+  } catch {
+    demandPool.value = [];
+  } finally {
+    poolLoading.value = false;
+  }
+}
+
+function clearPoolFilters() {
+  poolKeyword.value = '';
+  poolCountry.value = '';
+  poolStatus.value = '';
+}
+
+function openCreateDialog() {
+  createDialogVisible.value = true;
+}
+
+function goWorkerPool(demandId) {
+  if (!demandId) {
+    router.push('/worker-pool');
+    return;
+  }
+  router.push({
+    path: '/worker-pool',
+    query: { demandId: String(demandId) },
+  });
+}
+
 async function handleSubmit() {
   if (!formRef.value || submitLoading.value) {
     return;
@@ -550,6 +776,7 @@ async function handleSubmit() {
     const data = await createDemandApi(payload);
     const demandId = data?.demandId || data?.id || data || '';
     ElMessage.success(t('publishDemand.submitSuccess'));
+    createDialogVisible.value = false;
     router.push({
       path: '/worker-pool',
       query: demandId ? { demandId: String(demandId) } : undefined,
@@ -573,6 +800,9 @@ function syncPreferredWorkerFromRoute() {
   preferredWorkerCategory.value = String(route.query?.preferredWorkerCategory || '').trim();
   if (!formData.country && /^[A-Z]{2}$/.test(preferredWorkerCountry.value)) {
     formData.country = preferredWorkerCountry.value;
+  }
+  if (preferredWorkerProfileId.value > 0) {
+    createDialogVisible.value = true;
   }
 }
 
@@ -603,6 +833,8 @@ watch(
 onMounted(() => {
   syncPreferredWorkerFromRoute();
   loadCountryOptions();
+  loadDemandPool();
+  loadFeeConfig();
 });
 </script>
 
@@ -695,6 +927,31 @@ onMounted(() => {
   max-width: 600px;
 }
 
+.hero-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.hero-btn-primary {
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 600;
+  border: none;
+  color: #052241;
+  background: linear-gradient(120deg, #75e9ff, #8fffb7);
+  box-shadow: 0 12px 24px rgba(31, 227, 208, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(31, 227, 208, 0.35);
+  background: linear-gradient(120deg, #8cf0ff, #a6ffc6);
+}
+
 .hero-badges {
   position: relative;
   z-index: 1;
@@ -731,6 +988,46 @@ onMounted(() => {
   gap: 24px;
 }
 
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.metric {
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 24px rgba(27, 49, 90, 0.03);
+  transition: transform 0.24s ease, box-shadow 0.24s ease;
+}
+
+.metric:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(27, 49, 90, 0.05);
+}
+
+.metric .label {
+  margin: 0;
+  color: #6a8396;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric .value {
+  margin: 6px 0 0;
+  color: #102c42;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.filter-card,
+.list-card,
 .form-card,
 .side-card {
   border-radius: 18px;
@@ -744,6 +1041,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .section-head h2 {
@@ -757,6 +1056,96 @@ onMounted(() => {
 .section-tip {
   font-size: 12.5px;
   color: #65819e;
+}
+
+.pool-filter-row {
+  display: grid;
+  grid-template-columns: 1.25fr 0.9fr 0.9fr auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.pool-filter-item {
+  min-width: 180px;
+}
+
+.loading-wrap {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+}
+
+.demand-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.demand-card {
+  border: 1px solid rgba(216, 228, 246, 0.85);
+  border-radius: 16px;
+  padding: 16px 18px;
+  background: #fdfdff;
+  box-shadow: 0 12px 24px rgba(31, 57, 107, 0.03);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.demand-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 36px rgba(31, 57, 107, 0.08);
+  border-color: #bad2f9;
+}
+
+.demand-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.demand-top h3 {
+  margin: 0;
+  color: #11344d;
+  font-size: 19px;
+}
+
+.demand-desc {
+  margin: 10px 0 0;
+  color: #557186;
+  font-size: 13px;
+  line-height: 1.7;
+  min-height: 44px;
+}
+
+.demand-meta {
+  margin-top: 12px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: #425c71;
+  font-size: 13px;
+}
+
+.demand-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.demand-actions :deep(.el-button) {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 8px 18px;
+}
+
+:deep(.publish-create-dialog .el-dialog) {
+  border-radius: 18px;
+}
+
+:deep(.publish-create-dialog .el-dialog__body) {
+  max-height: 74vh;
+  overflow: auto;
 }
 
 .two-col {
@@ -856,6 +1245,7 @@ onMounted(() => {
 
 /* 深度定制表单输入框样式 */
 :deep(.el-input__wrapper),
+:deep(.el-select__wrapper),
 :deep(.el-textarea__inner) {
   border-radius: 10px;
   box-shadow: 0 0 0 1px rgba(216, 228, 246, 0.9) inset;
@@ -864,12 +1254,14 @@ onMounted(() => {
 }
 
 :deep(.el-input__wrapper:hover),
+:deep(.el-select__wrapper:hover),
 :deep(.el-textarea__inner:hover) {
   box-shadow: 0 0 0 1px #a4c5f4 inset;
   background: #fff;
 }
 
 :deep(.el-input__wrapper.is-focus),
+:deep(.el-select__wrapper.is-focused),
 :deep(.el-textarea__inner:focus) {
   box-shadow: 0 0 0 2px #5a9cf8 inset !important;
   background: #fff;
@@ -958,6 +1350,15 @@ onMounted(() => {
 }
 
 @media (max-width: 1100px) {
+  .metric-grid,
+  .demand-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pool-filter-row {
+    grid-template-columns: 1fr;
+  }
+
   .content-grid {
     grid-template-columns: 1fr;
   }

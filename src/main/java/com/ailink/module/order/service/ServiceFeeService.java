@@ -6,5 +6,5 @@ public interface ServiceFeeService {
 
     ServiceFeePayVO payServiceFee(Long userId, String role, Long orderId, String paymentChannel, String remark);
 
-    String handleWechatNotify(String signature, String timestamp, String nonce, String body);
+    String handleWechatNotify(String signature, String timestamp, String nonce, String serial, String body);
 }

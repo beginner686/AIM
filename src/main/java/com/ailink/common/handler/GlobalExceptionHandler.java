@@ -53,6 +53,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public Result<Void> handleException(Exception exception) {
         log.error("system exception", exception);
-        return Result.fail(ErrorCode.SYSTEM_ERROR.getCode(), exception.getMessage());
+        return Result.fail(ErrorCode.SYSTEM_ERROR.getCode(), "服务器内部错误，请稍后再试");
     }
 }

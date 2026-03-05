@@ -120,7 +120,7 @@ import { Plus, Search, Document, ShoppingCart, DataLine, Finished } from '@eleme
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/store/modules/user';
-import { getDemandListApi, getMyDemandListApi } from '@/api/demand';
+import { getMyDemandListApi } from '@/api/demand';
 import { getMyOrderListApi } from '@/api/order';
 import {
   DEMAND_OPEN_STATUSES,
@@ -138,7 +138,6 @@ const userStore = useUserStore();
 const router = useRouter();
 const { t } = useI18n();
 const loading = ref(true);
-const demands = ref([]);
 const myDemands = ref([]);
 const myOrders = ref([]);
 
@@ -152,17 +151,13 @@ const greeting = computed(() => {
 });
 
 const latestDemands = computed(() => {
-  if (!Array.isArray(demands.value)) return [];
-  return demands.value.filter(canMatchDemand).slice(0, 5);
+  if (!Array.isArray(myDemands.value)) return [];
+  return myDemands.value.filter(canMatchDemand).slice(0, 5);
 });
 const latestOrders = computed(() => (Array.isArray(myOrders.value) ? myOrders.value.slice(0, 5) : []));
 
 const totalAmount = computed(() =>
   myOrders.value.reduce((sum, order) => sum + Number(order?.amount || 0), 0),
-);
-
-const platformRevenue = computed(() =>
-  myOrders.value.reduce((sum, order) => sum + Number(order?.platformFee || 0), 0),
 );
 
 const activeOrderCount = computed(
@@ -179,9 +174,6 @@ const completionRate = computed(() => {
 const countryCount = computed(() => {
   const set = new Set();
   myDemands.value.forEach((d) => {
-    if (d?.targetCountry) set.add(d.targetCountry);
-  });
-  demands.value.forEach((d) => {
     if (d?.targetCountry) set.add(d.targetCountry);
   });
   return set.size;
@@ -295,15 +287,11 @@ function openOrder(order) {
 onMounted(async () => {
   loading.value = true;
   try {
-    const [allDemandResult, myDemandResult, myOrderResult] = await Promise.allSettled([
-      getDemandListApi(),
+    const [myDemandResult, myOrderResult] = await Promise.allSettled([
       getMyDemandListApi(),
       getMyOrderListApi(),
     ]);
 
-    demands.value = allDemandResult.status === 'fulfilled' && Array.isArray(allDemandResult.value)
-      ? allDemandResult.value
-      : [];
     myDemands.value = myDemandResult.status === 'fulfilled' && Array.isArray(myDemandResult.value)
       ? myDemandResult.value
       : [];
